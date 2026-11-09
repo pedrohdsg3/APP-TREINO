@@ -1,6 +1,6 @@
 // Perfis ("players"): cada um com nome, emoji, plano e banco de dados próprios.
 // A lista fica no localStorage (é pequena e precisa estar disponível antes de abrir o banco).
-import { abrirBanco } from '../db';
+import { abrirBanco, apagarBanco } from '../db';
 import { PLANOS, type DefinicaoPlano } from '../data/planos';
 import { usarPlano } from '../engine/plano';
 
@@ -11,17 +11,28 @@ export interface Perfil {
   plano: DefinicaoPlano['id'];
   banco: string;
   criado: string;
+  /** data de início padrão do programa (segunda-feira) */
+  inicio?: string;
 }
 
 const CHAVE = 'treino.perfis';
-const PEDRO: Perfil = { id: 'pedro', nome: 'Pedro', emoji: '💪', plano: 'pedro', banco: 'app-treino', criado: '2026-11-09' };
+const PEDRO: Perfil = { id: 'pedro', nome: 'Pedro', emoji: '💪', plano: 'pedro', banco: 'app-treino', criado: '2026-11-09', inicio: '2026-11-09' };
+const YANA: Perfil = { id: 'yana', nome: 'Yana', emoji: '🌸', plano: 'feminino', banco: 'app-treino-yana', criado: '2026-11-10', inicio: '2026-11-16' };
+/** Marca que o perfil da Yana já foi adicionado uma vez (se for excluído, não volta). */
+const SEMEADO = 'treino.perfis.yana';
 
 export function listarPerfis(): Perfil[] {
   try {
-    const l = JSON.parse(localStorage.getItem(CHAVE) ?? 'null') as Perfil[] | null;
-    if (Array.isArray(l) && l.length) return l;
+    const salvos = JSON.parse(localStorage.getItem(CHAVE) ?? 'null') as Perfil[] | null;
+    let l = Array.isArray(salvos) && salvos.length ? salvos : [PEDRO];
+    if (!localStorage.getItem(SEMEADO)) {
+      if (!l.some((p) => p.id === YANA.id)) l = [...l, YANA];
+      localStorage.setItem(SEMEADO, '1');
+      salvarPerfis(l);
+    }
+    return l;
   } catch { /* sem storage */ }
-  return [PEDRO];
+  return [PEDRO, YANA];
 }
 
 export function salvarPerfis(l: Perfil[]) {
@@ -50,7 +61,7 @@ export function perfilComTreinoEmAndamento(): Perfil | undefined {
   } catch { return undefined; }
 }
 
-export function novoPerfil(dados: { nome: string; emoji: string; plano: Perfil['plano'] }): Perfil {
+export function novoPerfil(dados: { nome: string; emoji: string; plano: Perfil['plano']; inicio?: string }): Perfil {
   const id = `${dados.nome.toLowerCase().normalize('NFD').replace(/[^a-z0-9]/g, '').slice(0, 12) || 'perfil'}-${Date.now().toString(36)}`;
   const p: Perfil = { ...dados, id, banco: `app-treino-${id}`, criado: new Date().toISOString().slice(0, 10) };
   salvarPerfis([...listarPerfis(), p]);
@@ -60,6 +71,19 @@ export function novoPerfil(dados: { nome: string; emoji: string; plano: Perfil['
 export function atualizarPerfil(p: Perfil) {
   salvarPerfis(listarPerfis().map((x) => (x.id === p.id ? p : x)));
   if (atual.id === p.id) atual = p;
+}
+
+/** Exclui o perfil e todos os dados dele neste aparelho. */
+export async function excluirPerfil(p: Perfil) {
+  const resto = listarPerfis().filter((x) => x.id !== p.id);
+  if (!resto.length) throw new Error('É preciso manter ao menos um perfil.');
+  salvarPerfis(resto);
+  try {
+    localStorage.removeItem(chaveLocal('treino.ativo', p));
+    localStorage.removeItem(chaveLocal('treino.corrida', p));
+  } catch { /* ignora */ }
+  if (atual.id === p.id) ativarPerfil(resto[0]);
+  await apagarBanco(p.banco);
 }
 
 export const EMOJIS_PERFIL = ['💪', '🏋️‍♀️', '🏃‍♀️', '🌸', '🦋', '⚡', '🔥', '🌟', '🍑', '🧘‍♀️', '🏃', '🦁'];

@@ -91,7 +91,7 @@ function NovoPerfil({ aoCriar, aoVoltar }: { aoCriar: (p: Perfil) => void; aoVol
       <div className="guiado__rodape">
         <Botao grande disabled={!nome.trim() || salvando} onClick={async () => {
           setSalvando(true);
-          const p = novoPerfil({ nome: nome.trim(), emoji, plano });
+          const p = novoPerfil({ nome: nome.trim(), emoji, plano, inicio });
           ativarPerfil(p);
           await salvarConfigPrograma({ inicio, repetidas: [] });
           aoCriar(p);
