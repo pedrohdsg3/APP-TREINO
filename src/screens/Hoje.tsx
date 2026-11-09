@@ -107,7 +107,7 @@ export function Hoje({ aoIniciar, aoCorridaLivre }: { aoIniciar: (p: DiaPlanejad
         <Card className="mini mini--largo">
           <span className="mini__rotulo"><IcBalanca tamanho={14} /> Peso corporal</span>
           <strong>{peso?.peso != null ? `${peso.peso.toLocaleString('pt-BR')} kg` : '—'}</strong>
-          <span className="mini__sub">{peso ? `em ${formatarData(peso.data)}` : 'o registro rápido chega na etapa 5'}</span>
+          <span className="mini__sub">{peso ? `em ${formatarData(peso.data)}` : 'registre em Evolução › Corpo'}</span>
         </Card>
       </div>
 
