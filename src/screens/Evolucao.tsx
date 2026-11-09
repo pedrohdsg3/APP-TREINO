@@ -9,7 +9,7 @@ import {
   sequenciaMaxima, tendenciaSemanal, valorAtual, volumePorGrupo, volumeSemanal, type MetaPessoal,
   type SerieComData, type CorridaComData,
 } from '../engine/evolucao';
-import { planoDaData, posicao, dataDoDia, totalSemanasCalendario } from '../engine/plano';
+import { planoDaData, posicao, dataDoDia, totalSemanasCalendario, diasComTreino, treinosPorSemana } from '../engine/plano';
 import { fmtKg } from '../engine/progressao';
 import { fmtPace } from '../engine/corridaAtiva';
 import { useConfigPrograma } from '../lib/ajustes';
@@ -42,7 +42,12 @@ export function Evolucao() {
 
   const dados = useMemo(() => {
     if (!sessoes || !seriesBrutas || !corridasBrutas || !corpo) return null;
-    return { sessoes, series: juntarDatas(seriesBrutas, sessoes), corridas: corridasComData(corridasBrutas, sessoes), corpo };
+    const cardioIds = new Set(sessoes.filter((x) => x.tipo === 'cardio').map((x) => x.id));
+    return {
+      sessoes, series: juntarDatas(seriesBrutas, sessoes), corpo,
+      corridas: corridasComData(corridasBrutas.filter((c) => !cardioIds.has(c.sessaoId)), sessoes),
+      cardios: corridasComData(corridasBrutas.filter((c) => cardioIds.has(c.sessaoId)), sessoes),
+    };
   }, [sessoes, seriesBrutas, corridasBrutas, corpo]);
 
   return (
@@ -67,7 +72,7 @@ export function Evolucao() {
   );
 }
 
-interface Dados { sessoes: Sessao[]; series: SerieComData[]; corridas: CorridaComData[]; corpo: RegistroCorpo[] }
+interface Dados { sessoes: Sessao[]; series: SerieComData[]; corridas: CorridaComData[]; cardios: CorridaComData[]; corpo: RegistroCorpo[] }
 
 const semanaAtualIdx = (inicio: string, total: number) => Math.min(total - 1, Math.max(0, semanaIdx(inicio, isoLocal())));
 
@@ -86,12 +91,15 @@ function AbaMetas({ d, inicio, semanas, metas, irPara, cfg }: {
   const pos = posicao(cfg, hoje);
   const iniSemana = pos.estado === 'durante' ? dataDoDia(cfg, pos.semanaCal, 0) : inicio;
   const naSemana = (data: string) => data >= iniSemana && data <= somarDias(iniSemana, 6);
-  const feitosSemana = new Set(d.sessoes.filter((s) => s.status !== 'pulado' && naSemana(s.data)).map((s) => s.data)).size;
+  const feitosSemana = new Set(d.sessoes.filter((s) => s.status !== 'pulado' && s.tipo !== 'cardio' && naSemana(s.data)).map((s) => s.data)).size;
+  const nTreinos = treinosPorSemana();
+  const cardioSemana = d.cardios.filter((c) => naSemana(c.data)).reduce((x, c) => x + c.duracaoSeg, 0);
+  const cardioPlano = Array.from({ length: 7 }, (_, i) => { const p = planoDaData(cfg, somarDias(iniSemana, i)); return (p?.cardio ?? (p?.corrida?.tipo === 'cardio' ? p.corrida : undefined))?.totalSeg ?? 0; }).reduce((a, b) => a + b, 0);
   const minCorridaSemana = d.corridas.filter((c) => naSemana(c.data)).reduce((s, c) => s + c.duracaoSeg, 0);
-  const minCorridaPlano = Array.from({ length: 7 }, (_, i) => planoDaData(cfg, somarDias(iniSemana, i))?.corrida?.totalSeg ?? 0).reduce((a, b) => a + b, 0);
+  const minCorridaPlano = Array.from({ length: 7 }, (_, i) => { const c = planoDaData(cfg, somarDias(iniSemana, i))?.corrida; return c && c.tipo !== 'cardio' ? c.totalSeg : 0; }).reduce((a, b) => a + b, 0);
   const progrediram = exerciciosQueProgrediram(d.series);
-  const lista = conquistas({ ...d, inicio, hoje, pesoAlvo: metas.pesoAlvo, sequenciaMax: sequenciaMaxima(d.sessoes) });
-  const mapa = mapaConsistencia(d.sessoes, inicio, semanas, hoje);
+  const lista = conquistas({ ...d, inicio, hoje, pesoAlvo: metas.pesoAlvo, sequenciaMax: sequenciaMaxima(d.sessoes), planejado: diasComTreino() });
+  const mapa = mapaConsistencia(d.sessoes, inicio, semanas, hoje, diasComTreino());
 
   return (
     <div className="tela">
@@ -108,8 +116,9 @@ function AbaMetas({ d, inicio, semanas, metas, irPara, cfg }: {
       <h3 className="secao">Metas do programa</h3>
       <div className="metas-auto">
         <MetaAuto emoji="🏃" titulo="30 min trotando sem parar" valor={fmtRelogio(trote)} meta="30:00" p={trote / 1800} cor="corr" />
-        <MetaAuto emoji="💪" titulo="Treinos desta semana" valor={`${feitosSemana}`} meta="7" p={feitosSemana / 7} cor="musc" />
+        <MetaAuto emoji="💪" titulo="Treinos desta semana" valor={`${feitosSemana}`} meta={`${nTreinos}`} p={feitosSemana / nTreinos} cor="musc" />
         <MetaAuto emoji="⏱️" titulo="Minutos de corrida na semana" valor={minutos(minCorridaSemana)} meta={minutos(minCorridaPlano)} p={minCorridaPlano ? minCorridaSemana / minCorridaPlano : 0} cor="corr" />
+        <MetaAuto emoji="🚶" titulo="Cardio leve na semana (opcional)" valor={minutos(cardioSemana)} meta={minutos(cardioPlano)} p={cardioPlano ? cardioSemana / cardioPlano : 0} cor="corr" />
         <MetaAuto emoji="📈" titulo="Exercícios com carga maior que no início" valor={`${progrediram}`} meta={`${exerciciosComHistorico(d.series).length || '—'}`} p={exerciciosComHistorico(d.series).length ? progrediram / exerciciosComHistorico(d.series).length : 0} cor="musc" />
       </div>
 
@@ -159,13 +168,14 @@ function AbaMetas({ d, inicio, semanas, metas, irPara, cfg }: {
           </div>
         ))}
         <p className="mapa__leitura" aria-live="polite">
-          {celula ? `${dataPorExtenso(celula)}: ${({ feito: 'treino feito ✅', parcial: 'treino parcial', pulado: 'pulado', vazio: 'sem registro', futuro: 'ainda não chegou' } as const)[mapa.flat()[diasIdx(inicio, celula)]]}` : 'Toque num dia para ver.'}
+          {celula ? `${dataPorExtenso(celula)}: ${({ feito: 'treino feito ✅', parcial: 'treino parcial', pulado: 'pulado', vazio: 'sem registro', futuro: 'ainda não chegou', descanso: 'descanso 🌿' } as const)[mapa.flat()[diasIdx(inicio, celula)]]}` : 'Toque num dia para ver.'}
         </p>
         <div className="legenda">
           <span><i className="ponto mapa__cel--feito" /> Feito</span>
           <span><i className="ponto mapa__cel--parcial" /> Parcial</span>
           <span><i className="ponto mapa__cel--pulado" /> Pulado</span>
           <span><i className="ponto mapa__cel--vazio" /> Sem registro</span>
+          {diasComTreino().some((x) => !x) && <span><i className="ponto mapa__cel--descanso" /> Descanso</span>}
         </div>
       </Card>
 
@@ -358,7 +368,7 @@ function AbaForca({ d, inicio, semanas }: { d: Dados; inicio: string; semanas: n
 
 // ============================================================ CORRIDA
 function AbaCorrida({ d, inicio, semanas }: { d: Dados; inicio: string; semanas: number }) {
-  if (!d.corridas.length) {
+  if (!d.corridas.length && !d.cardios.length) {
     return <EstadoVazio ilustracao={<IlustraGrafico />} titulo="Sem corridas ainda" texto="Depois da primeira corrida você vê distância, tempo trotando, pace e a dor no joelho ao longo das semanas." />;
   }
   const atual = semanaAtualIdx(inicio, semanas);
@@ -395,6 +405,14 @@ function AbaCorrida({ d, inicio, semanas }: { d: Dados; inicio: string; semanas:
         <GraficoBarras titulo="Minutos por semana" cor="corr" destaque={atual} formatar={(v) => num(v, 0)}
           barras={minSem.map((v, i) => ({ rotulo: rotuloSemana(i), valor: v, detalhe: `Semana ${i + 1}` }))} />
       </Card>
+
+      {d.cardios.length > 0 && (
+        <Card>
+          <h3 className="card__titulo">🚶 Cardio leve por semana</h3>
+          <GraficoBarras titulo="Minutos de cardio leve por semana" cor="corr" destaque={atual} formatar={(v) => num(v, 0)}
+            barras={porSemana(d.cardios, inicio, semanas, (x) => x.duracaoSeg / 60).map((v, i) => ({ rotulo: rotuloSemana(i), valor: v, detalhe: `Semana ${i + 1}` }))} />
+        </Card>
+      )}
 
       <Card>
         <h3 className="card__titulo">Distância por semana</h3>

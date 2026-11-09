@@ -1,4 +1,5 @@
 // Corrida em andamento. Tudo derivado de timestamps: tempo ativo = agora − início − pausas.
+import { chaveLocal } from '../lib/perfis';
 // As fases são sequenciais; "pular" adiciona um deslocamento ao tempo do plano.
 import type { Fase } from '../data/corrida';
 import type { CorridaPlanejada } from './plano';
@@ -160,10 +161,10 @@ export function fraseDaFase(f: Fase | undefined): string {
 }
 
 // ---------- persistência ----------
-const CHAVE = 'treino.corrida';
+const CHAVE_BASE = 'treino.corrida';
 export function lerCorridaAtiva(): CorridaAtiva | null {
-  try { const t = JSON.parse(localStorage.getItem(CHAVE) ?? 'null'); return t?.versao === 1 ? t : null; } catch { return null; }
+  try { const t = JSON.parse(localStorage.getItem(chaveLocal(CHAVE_BASE)) ?? 'null'); return t?.versao === 1 ? t : null; } catch { return null; }
 }
 export function gravarCorridaAtiva(t: CorridaAtiva | null) {
-  try { if (t) localStorage.setItem(CHAVE, JSON.stringify(t)); else localStorage.removeItem(CHAVE); } catch { /* ignora */ }
+  try { if (t) localStorage.setItem(chaveLocal(CHAVE_BASE), JSON.stringify(t)); else localStorage.removeItem(chaveLocal(CHAVE_BASE)); } catch { /* ignora */ }
 }

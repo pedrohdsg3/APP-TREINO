@@ -68,6 +68,25 @@ export const EXERCICIOS: Record<string, Exercicio> = Object.fromEntries(([
   { id: 'abd-remador', nome: 'Abdominal remador (cabo)', grupo: 'Abdômen', tipo: 'isolador', medida: 'reps', regiao: 'core', dica: 'Enrole a coluna levando o peito ao quadril; o quadril não se mexe.' },
   { id: 'rotacao-russa', nome: 'Rotação russa com peso', grupo: 'Abdômen', tipo: 'isolador', medida: 'reps', regiao: 'core', dica: 'Tronco inclinado, gire os ombros, não só os braços.' },
   { id: 'prancha-lateral', nome: 'Prancha lateral', grupo: 'Core', tipo: 'isolador', medida: 'segundos', regiao: 'core', dica: 'Cotovelo abaixo do ombro, quadril alto e alinhado.', semCarga: true },
+  { id: 'abd-crunch', nome: 'Abdominal supra (solo ou máquina)', grupo: 'Abdômen', tipo: 'isolador', medida: 'reps', regiao: 'core', dica: 'Tire as escápulas do chão enrolando a coluna; sem puxar o pescoço.' },
+  { id: 'dead-bug', nome: 'Dead bug', grupo: 'Core', tipo: 'isolador', medida: 'reps', regiao: 'core', dica: 'Lombar colada no chão; estenda braço e perna opostos devagar. Conte cada lado.', semCarga: true },
+  { id: 'abd-infra', nome: 'Abdominal infra (elevação de pernas)', grupo: 'Abdômen', tipo: 'isolador', medida: 'reps', regiao: 'core', dica: 'Deitada, suba as pernas sem tirar a lombar do chão; desça devagar.', semCarga: true },
+  // Inferiores (foco glúteos/pernas)
+  { id: 'agachamento-goblet', nome: 'Agachamento goblet (com halter)', grupo: 'Quadríceps', tipo: 'composto', medida: 'reps', regiao: 'inferior', dica: 'Halter junto ao peito, peito aberto; desça entre as pernas até onde mantiver a coluna neutra.', alternativas: ['leg-press', 'agachamento-smith'] },
+  { id: 'afundo', nome: 'Afundo / avanço alternado', grupo: 'Glúteos', tipo: 'composto', medida: 'reps', regiao: 'inferior', dica: 'Passo largo, tronco levemente à frente para mais glúteo; joelho de trás quase toca o chão.' },
+  { id: 'agachamento-bulgaro', nome: 'Agachamento búlgaro', grupo: 'Glúteos', tipo: 'composto', medida: 'reps', regiao: 'inferior', dica: 'Pé de trás no banco; desça reto, peso no calcanhar da frente. Comece só com o corpo.', alternativas: ['afundo'] },
+  { id: 'elevacao-pelvica', nome: 'Elevação pélvica (hip thrust)', grupo: 'Glúteos', tipo: 'composto', medida: 'reps', regiao: 'inferior', dica: 'Costas no banco, queixo para baixo; suba até o quadril alinhar e aperte o glúteo 1 s no topo.' },
+  { id: 'abdutora', nome: 'Cadeira abdutora', grupo: 'Glúteos', tipo: 'isolador', medida: 'reps', regiao: 'inferior', dica: 'Tronco levemente inclinado à frente pega mais glúteo; volte controlando.' },
+  { id: 'extensao-quadril-polia', nome: 'Extensão de quadril na polia (coice)', grupo: 'Glúteos', tipo: 'isolador', medida: 'reps', regiao: 'inferior', dica: 'Quadril parado, leve a perna para trás apertando o glúteo; sem arquear a lombar. Conte cada perna.' },
+  { id: 'cadeira-flexora', nome: 'Cadeira flexora', grupo: 'Posterior', tipo: 'isolador', medida: 'reps', regiao: 'inferior', dica: 'Joelho alinhado ao eixo da máquina; desça devagar (2–3 s).', alternativas: ['flexora'] },
+  { id: 'agachamento-sumo', nome: 'Agachamento sumô (halter ou máquina)', grupo: 'Glúteos', tipo: 'composto', medida: 'reps', regiao: 'inferior', dica: 'Pés afastados e apontados para fora; joelhos acompanham os pés.' },
+  { id: 'panturrilha-sentado', nome: 'Panturrilha sentado', grupo: 'Panturrilha', tipo: 'isolador', medida: 'reps', regiao: 'inferior', dica: 'Amplitude completa, pausa de 1 s em cima.', alternativas: ['panturrilha'] },
+  // Superiores
+  { id: 'remada-baixa', nome: 'Remada baixa / máquina (pegada neutra)', grupo: 'Costas', tipo: 'composto', medida: 'reps', regiao: 'superior', dica: 'Peito aberto; puxe os cotovelos para trás juntando as escápulas.', alternativas: ['remada-unilateral'] },
+  { id: 'desenvolvimento-maquina', nome: 'Desenvolvimento na máquina', grupo: 'Ombro', tipo: 'composto', medida: 'reps', regiao: 'superior', dica: 'Costas apoiadas; não trave os cotovelos no topo.', alternativas: ['desenvolvimento-halter'] },
+  { id: 'crucifixo-inverso', nome: 'Crucifixo inverso no peck deck', grupo: 'Ombro', tipo: 'isolador', medida: 'reps', regiao: 'superior', dica: 'De frente para a máquina; abra os braços com cotovelos levemente flexionados (posterior de ombro).' },
+  { id: 'triceps-testa-polia', nome: 'Tríceps testa na polia', grupo: 'Tríceps', tipo: 'isolador', medida: 'reps', regiao: 'superior', dica: 'Cotovelos fixos apontando para frente; estenda até o fim.', alternativas: ['triceps-corda'] },
+  { id: 'rosca-scott', nome: 'Rosca Scott com halteres', grupo: 'Bíceps', tipo: 'isolador', medida: 'reps', regiao: 'superior', dica: 'Braço todo apoiado; desça até quase estender, sem soltar.', alternativas: ['rosca-alternada'] },
 ] satisfies Exercicio[]).map((e) => [e.id, e]));
 
 const i = (exercicioId: string, series: number, reps: number, extra: Partial<ItemTreino> = {}): ItemTreino => ({
@@ -76,7 +95,7 @@ const i = (exercicioId: string, series: number, reps: number, extra: Partial<Ite
   ...extra,
 });
 
-export type TreinoMusculacaoId = 'peito-triceps' | 'costas-biceps' | 'ombro-bracos' | 'pernas' | 'abdomen';
+export type TreinoMusculacaoId = string;
 
 export interface TreinoMusculacao {
   id: TreinoMusculacaoId;
@@ -85,7 +104,7 @@ export interface TreinoMusculacao {
   itens: (semanaPrograma: number) => ItemTreino[];
 }
 
-export const TREINOS_MUSCULACAO: Record<TreinoMusculacaoId, TreinoMusculacao> = {
+export const TREINOS_MUSCULACAO: Record<string, TreinoMusculacao> = {
   'peito-triceps': {
     id: 'peito-triceps',
     titulo: 'Peito + Tríceps',

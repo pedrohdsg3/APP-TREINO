@@ -7,7 +7,8 @@ import { Folha } from '../ui/Folha';
 import { BarraFases, DetalheDia } from '../ui/DetalheDia';
 import { dataPorExtenso, formatarData, isoLocal, saudacao, somarDias, diasEntre } from '../lib/datas';
 import { useConfigPrograma } from '../lib/ajustes';
-import { SEMANAS_PROGRAMA, dataDoDia, planoDaData, posicao, formatarDuracao, type DiaPlanejado } from '../engine/plano';
+import { SEMANAS_PROGRAMA, dataDoDia, planoDaData, posicao, formatarDuracao, treinosPorSemana, type DiaPlanejado } from '../engine/plano';
+import { perfilAtual, listarPerfis } from '../lib/perfis';
 import { feitosNaSemana, sequencia, ultimaSessao } from '../engine/estatisticas';
 
 function quando(data: string, hoje: string) {
@@ -18,7 +19,9 @@ function quando(data: string, hoje: string) {
   return formatarData(data);
 }
 
-export function Hoje({ aoIniciar, aoCorridaLivre }: { aoIniciar: (p: DiaPlanejado, modo: 'principal' | 'musculacao') => void; aoCorridaLivre: () => void }) {
+export type ModoInicio = 'principal' | 'musculacao' | 'cardio';
+
+export function Hoje({ aoIniciar, aoCorridaLivre, aoTrocarPerfil }: { aoIniciar: (p: DiaPlanejado, modo: ModoInicio) => void; aoCorridaLivre: () => void; aoTrocarPerfil: () => void }) {
   const cfg = useConfigPrograma();
   const hoje = isoLocal();
   const sessoes = useLiveQuery(() => db.sessoes.toArray(), []) ?? [];
@@ -33,19 +36,31 @@ export function Hoje({ aoIniciar, aoCorridaLivre }: { aoIniciar: (p: DiaPlanejad
   const prox = planoDaData(cfg, somarDias(dataTreino, 1));
   const inicioSemana = pos.estado === 'durante' ? dataDoDia(cfg, pos.semanaCal, 0) : cfg.inicio;
   const feitos = feitosNaSemana(sessoes, inicioSemana);
-  const seq = sequencia(sessoes, hoje);
+  const seq = sequencia(sessoes, hoje, (d) => !!planoDaData(cfg, d)?.descanso);
+  const nTreinos = treinosPorSemana();
+  const perfil = perfilAtual();
   const ultima = ultimaSessao(sessoes, hoje);
   const doDia = sessoes.filter((s) => s.data === hoje && s.status !== 'pulado');
-  const principalFeito = doDia.some((s) => s.tipo === (plano?.tipoPrincipal ?? 'musculacao') && s.status === 'feito');
+  const tipoPrincipal = plano?.corrida?.tipo === 'cardio' ? 'cardio' : (plano?.tipoPrincipal ?? 'musculacao');
+  const principalFeito = doDia.some((s) => s.tipo === tipoPrincipal && s.status === 'feito');
   const extraFeito = doDia.some((s) => s.tipo === 'musculacao' && s.status === 'feito');
+  const cardioFeito = doDia.some((s) => s.tipo === 'cardio' && s.status === 'feito');
   const temExtra = !!(plano?.corrida && plano.musculacao);
   const cor = plano?.tipoPrincipal === 'corrida' ? 'corr' : 'musc';
+  const rotuloPrincipal = plano?.descanso ? 'Iniciar cardio leve (opcional)' : temExtra ? 'Iniciar corrida' : 'Iniciar treino';
+  const rotuloFeito = plano?.descanso ? 'Cardio leve concluído ✅' : temExtra ? 'Corrida concluída ✅' : 'Treino de hoje concluído ✅';
 
   return (
     <div className="tela">
       <header className="cabecalho">
         <p className="cabecalho__data">{dataPorExtenso(hoje)}</p>
-        <h1>{saudacao()}, Pedro <span className="emoji">👋</span></h1>
+        <div className="cabecalho__linha">
+          <h1>{saudacao()}, {perfil.nome} <span className="emoji">👋</span></h1>
+          <button className="avatar" onClick={aoTrocarPerfil} aria-label={`Perfil de ${perfil.nome}. Trocar perfil`}>
+            <span aria-hidden="true">{perfil.emoji}</span>
+            {listarPerfis().length > 1 && <small aria-hidden="true">⇄</small>}
+          </button>
+        </div>
         {pos.estado === 'durante' && (
           <p className="cabecalho__sub">Semana {pos.semana} de {SEMANAS_PROGRAMA} · Fase {pos.fase}{pos.repetida ? ' · repetição' : ''}</p>
         )}
@@ -56,7 +71,7 @@ export function Hoje({ aoIniciar, aoCorridaLivre }: { aoIniciar: (p: DiaPlanejad
       {plano ? (
         <Card destaque={cor} className="treino-dia entra">
           <div className="treino-dia__topo">
-            <Chip cor={cor}>{cor === 'musc' ? <><IcHalter tamanho={16} /> Musculação</> : <><IcTenis tamanho={16} /> Corrida</>}</Chip>
+            <Chip cor={cor}>{plano.descanso ? <>🌿 Descanso</> : cor === 'musc' ? <><IcHalter tamanho={16} /> Musculação</> : <><IcTenis tamanho={16} /> Corrida</>}</Chip>
             <span className="treino-dia__dur"><IcRelogio tamanho={16} /> ~{plano.minutos} min</span>
           </div>
           {pos.estado === 'antes' && <p className="sutil">Primeiro treino · {dataPorExtenso(cfg.inicio)}</p>}
@@ -64,14 +79,17 @@ export function Hoje({ aoIniciar, aoCorridaLivre }: { aoIniciar: (p: DiaPlanejad
           <div className="tags">
             {plano.grupos.map((g) => <span key={g} className="tag">{g}</span>)}
           </div>
-          {plano.corrida && <BarraFases corrida={plano.corrida} />}
+          {plano.corrida && !plano.descanso && <BarraFases corrida={plano.corrida} />}
           {plano.recuperacao && <p className="nota-recup">🌿 Semana de recuperação: menos volume, carga ~10% menor.</p>}
           {pos.estado === 'antes' ? null : principalFeito
-            ? <Botao grande variante="secundario" onClick={() => setDetalhe({ data: dataTreino, plano })}>{temExtra ? 'Corrida concluída ✅' : 'Treino de hoje concluído ✅'}</Botao>
-            : <Botao grande cor={cor} icone={<IcPlay tamanho={20} />} onClick={() => aoIniciar(plano, 'principal')}>{temExtra ? 'Iniciar corrida' : 'Iniciar treino'}</Botao>}
+            ? <Botao grande variante="secundario" onClick={() => setDetalhe({ data: dataTreino, plano })}>{rotuloFeito}</Botao>
+            : <Botao grande cor={plano.descanso ? 'corr' : cor} variante={plano.descanso ? 'secundario' : 'primario'} icone={<IcPlay tamanho={20} />} onClick={() => aoIniciar(plano, 'principal')}>{rotuloPrincipal}</Botao>}
           {pos.estado !== 'antes' && temExtra && (extraFeito
             ? <p className="sutil centro">Abdômen concluído ✅</p>
             : <Botao variante="secundario" icone={<IcHalter tamanho={18} />} onClick={() => aoIniciar(plano, 'musculacao')}>Iniciar abdômen (~{plano.musculacao!.minutos} min)</Botao>)}
+          {pos.estado !== 'antes' && plano.cardio && (cardioFeito
+            ? <p className="sutil centro">Cardio leve concluído ✅</p>
+            : <Botao variante="secundario" icone={<span aria-hidden="true">🚶</span>} onClick={() => aoIniciar(plano, 'cardio')}>Cardio leve · {plano.cardio.totalSeg / 60} min (opcional)</Botao>)}
           <button className="link" onClick={() => setDetalhe({ data: dataTreino, plano })}>Ver treino completo</button>
         </Card>
       ) : (
@@ -84,10 +102,10 @@ export function Hoje({ aoIniciar, aoCorridaLivre }: { aoIniciar: (p: DiaPlanejad
 
       {pos.estado === 'durante' && (
         <Card className="meta entra">
-          <Anel progresso={feitos / 7} tamanho={72} espessura={7}><strong>{feitos}/7</strong></Anel>
+          <Anel progresso={feitos / nTreinos} tamanho={72} espessura={7}><strong>{feitos}/{nTreinos}</strong></Anel>
           <div className="meta__texto">
             <h3>Meta da semana</h3>
-            <p>{feitos} de 7 treinos concluídos</p>
+            <p>{feitos} de {nTreinos} treinos concluídos</p>
             <p className="meta__streak"><IcChama tamanho={16} /> Sequência: {seq} {seq === 1 ? 'dia' : 'dias'}</p>
           </div>
         </Card>

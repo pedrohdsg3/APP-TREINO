@@ -126,16 +126,18 @@ export function porSemana<T extends { data: string }>(itens: T[], inicio: string
 export const maiorTroteContinuo = (c: CorridaComData[]) => Math.max(0, ...c.map((x) => x.maiorTroteSeg ?? 0));
 
 // ---------------------------------------------------------------- consistência
-export type EstadoCelula = 'feito' | 'parcial' | 'pulado' | 'vazio' | 'futuro';
-export function mapaConsistencia(sessoes: Sessao[], inicio: string, semanas: number, hoje: string): EstadoCelula[][] {
+export type EstadoCelula = 'feito' | 'parcial' | 'pulado' | 'vazio' | 'futuro' | 'descanso';
+/** planejado[d]: o dia d (0 = segunda) tem treino que conta (os outros são descanso). */
+export function mapaConsistencia(sessoes: Sessao[], inicio: string, semanas: number, hoje: string, planejado: boolean[] = Array(7).fill(true)): EstadoCelula[][] {
   const por = new Map<string, Sessao[]>();
-  for (const s of sessoes) por.set(s.data, [...(por.get(s.data) ?? []), s]);
+  for (const s of sessoes) if (s.tipo !== 'cardio') por.set(s.data, [...(por.get(s.data) ?? []), s]);
   return Array.from({ length: semanas }, (_, w) => Array.from({ length: 7 }, (_, d) => {
     const data = somarDias(inicio, w * 7 + d);
     const ss = por.get(data) ?? [];
     if (ss.some((s) => s.status === 'feito')) return 'feito';
     if (ss.some((s) => s.status === 'parcial')) return 'parcial';
     if (ss.some((s) => s.status === 'pulado')) return 'pulado';
+    if (!planejado[d]) return 'descanso';
     return data > hoje ? 'futuro' : 'vazio';
   }));
 }
@@ -145,11 +147,11 @@ export interface Conquista { id: string; emoji: string; titulo: string; descrica
 
 export function conquistas(o: {
   sessoes: Sessao[]; series: SerieComData[]; corridas: CorridaComData[]; corpo: RegistroCorpo[];
-  inicio: string; hoje: string; pesoAlvo?: number; sequenciaMax: number;
+  inicio: string; hoje: string; pesoAlvo?: number; sequenciaMax: number; planejado?: boolean[];
 }): Conquista[] {
-  const feitos = o.sessoes.filter((s) => s.status === 'feito' || s.status === 'parcial');
-  const mapa = mapaConsistencia(o.sessoes, o.inicio, 16, o.hoje);
-  const completas = mapa.map((w) => w.every((c) => c === 'feito'));
+  const feitos = o.sessoes.filter((s) => s.tipo !== 'cardio' && (s.status === 'feito' || s.status === 'parcial'));
+  const mapa = mapaConsistencia(o.sessoes, o.inicio, 16, o.hoje, o.planejado);
+  const completas = mapa.map((w) => w.every((c) => c === 'feito' || c === 'descanso') && w.some((c) => c === 'feito'));
   let seguidas = 0, maxSeguidas = 0;
   for (const c of completas) { seguidas = c ? seguidas + 1 : 0; maxSeguidas = Math.max(maxSeguidas, seguidas); }
   const prs = o.sessoes.reduce((s, x) => s + (x.prs ?? 0), 0);
@@ -161,7 +163,7 @@ export function conquistas(o: {
   return [
     c('primeiro', '🌱', 'Primeiro passo', 'Concluir o primeiro treino', feitos.length, 1),
     c('corrida1', '👟', 'Primeira corrida', 'Registrar a primeira corrida', o.corridas.length, 1),
-    c('semana', '✅', 'Semana completa', 'Fazer os 7 treinos de uma semana', completas.filter(Boolean).length, 1),
+    c('semana', '✅', 'Semana completa', 'Fazer todos os treinos de uma semana', completas.filter(Boolean).length, 1),
     c('seq7', '🔥', 'Sequência de 7', '7 dias seguidos treinando', o.sequenciaMax, 7),
     c('pr1', '🏆', 'Primeiro PR', 'Bater um recorde pessoal', prs, 1),
     c('treinos20', '💪', '20 treinos', 'Concluir 20 treinos', feitos.length, 20),
@@ -176,7 +178,7 @@ export function conquistas(o: {
 
 /** Maior sequência de dias seguidos com treino. */
 export function sequenciaMaxima(sessoes: Sessao[]): number {
-  const dias = [...new Set(sessoes.filter((s) => s.status !== 'pulado').map((s) => s.data))].sort();
+  const dias = [...new Set(sessoes.filter((s) => s.status !== 'pulado' && s.tipo !== 'cardio').map((s) => s.data))].sort();
   let max = 0, atual = 0;
   for (let i = 0; i < dias.length; i++) {
     atual = i > 0 && diasEntre(dias[i - 1], dias[i]) === 1 ? atual + 1 : 1;

@@ -5,7 +5,7 @@ import Dexie, { type EntityTable } from 'dexie';
 export interface Sessao {
   id: string;
   data: string; // aaaa-mm-dd
-  tipo: 'musculacao' | 'corrida';
+  tipo: 'musculacao' | 'corrida' | 'cardio';
   diaPlanejado?: string;
   status: 'feito' | 'pulado' | 'parcial';
   duracaoSeg?: number;
@@ -57,7 +57,7 @@ export interface RegistroCorpo {
 }
 export interface Ajuste { chave: string; valor: unknown }
 
-export const db = new Dexie('app-treino') as Dexie & {
+export type Banco = Dexie & {
   sessoes: EntityTable<Sessao, 'id'>;
   series: EntityTable<RegistroSerie, 'id'>;
   corridas: EntityTable<RegistroCorrida, 'sessaoId'>;
@@ -65,14 +65,34 @@ export const db = new Dexie('app-treino') as Dexie & {
   ajustes: EntityTable<Ajuste, 'chave'>;
 };
 
-db.version(1).stores({
-  sessoes: 'id, data, tipo, status',
-  series: '++id, sessaoId, exercicioId, timestamp',
-  corridas: 'sessaoId',
-  corpo: 'data',
-  ajustes: 'chave',
-});
-db.version(2).stores({
-  sessoes: 'id, data, tipo, status, treinoId',
-  series: '++id, sessaoId, exercicioId, timestamp, [sessaoId+exercicioId]',
-});
+function criarBanco(nome: string): Banco {
+  const b = new Dexie(nome) as Banco;
+  b.version(1).stores({
+    sessoes: 'id, data, tipo, status',
+    series: '++id, sessaoId, exercicioId, timestamp',
+    corridas: 'sessaoId',
+    corpo: 'data',
+    ajustes: 'chave',
+  });
+  b.version(2).stores({
+    sessoes: 'id, data, tipo, status, treinoId',
+    series: '++id, sessaoId, exercicioId, timestamp, [sessaoId+exercicioId]',
+  });
+  return b;
+}
+
+/**
+ * Banco do perfil ativo. Cada perfil tem o seu (o do Pedro continua sendo "app-treino").
+ * É um binding "vivo": quem importa `db` passa a ver o novo banco após abrirBanco().
+ */
+export let db: Banco = criarBanco('app-treino');
+
+export function abrirBanco(nome: string) {
+  if (db.name === nome) return;
+  db.close();
+  db = criarBanco(nome);
+}
+
+export async function apagarBanco(nome: string) {
+  await Dexie.delete(nome);
+}

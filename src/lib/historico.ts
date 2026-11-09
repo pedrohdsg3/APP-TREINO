@@ -60,7 +60,7 @@ export async function salvarTreino(t: TreinoAtivo, extra: { esforco?: number; no
 export async function salvarCorrida(t: CorridaAtiva, r: { distanciaKm?: number; esforco?: number; dorJoelho?: number; notas?: string }, agora: number) {
   const res = resumirCorrida(t, agora);
   const sessao: Sessao = {
-    id: t.sessaoId, data: t.data, tipo: 'corrida', status: 'feito', duracaoSeg: res.duracaoSeg,
+    id: t.sessaoId, data: t.data, tipo: t.treinoId === 'cardio-leve' ? 'cardio' : 'corrida', status: 'feito', duracaoSeg: res.duracaoSeg,
     esforco: r.esforco, notas: r.notas?.trim() || undefined, semana: t.semana, treinoId: t.treinoId,
     inicioTs: t.inicio, fimTs: t.fim ?? agora,
   };

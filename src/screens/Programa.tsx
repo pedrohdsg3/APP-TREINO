@@ -8,26 +8,28 @@ import { IcHalter, IcTenis } from '../ui/Icones';
 import { deIso, formatarData, isoLocal } from '../lib/datas';
 import { salvarConfigPrograma, useConfigPrograma } from '../lib/ajustes';
 import {
-  SEMANAS_PROGRAMA, dataDoDia, planoDaData, faseDaSemana, posicao, repetirSemana,
+  SEMANAS_PROGRAMA, dataDoDia, planoDaData, planoAtual, faseDaSemana, posicao, repetirSemana,
   semanaDoPrograma, totalSemanasCalendario, type ConfigPrograma, type DiaPlanejado,
 } from '../engine/plano';
 
 const SIGLA = ['Seg', 'Ter', 'Qua', 'Qui', 'Sex', 'Sáb', 'Dom'];
 const curta = (iso: string) => formatarData(iso).slice(0, 5);
 
-type EstadoDia = 'feito' | 'parcial' | 'pulado' | 'hoje' | 'passado' | 'futuro';
-function estadoDia(data: string, hoje: string, porData: Map<string, Sessao[]>): EstadoDia {
-  const s = porData.get(data) ?? [];
+type EstadoDia = 'feito' | 'parcial' | 'pulado' | 'hoje' | 'passado' | 'futuro' | 'descanso';
+function estadoDia(data: string, hoje: string, porData: Map<string, Sessao[]>, descanso = false): EstadoDia {
+  // cardio leve só conta como "feito" num dia de descanso
+  const s = (porData.get(data) ?? []).filter((x) => descanso || x.tipo !== 'cardio');
   if (s.some((x) => x.status === 'feito')) return 'feito';
   if (s.some((x) => x.status === 'parcial')) return 'parcial';
   if (s.some((x) => x.status === 'pulado')) return 'pulado';
   if (data === hoje) return 'hoje';
+  if (descanso) return 'descanso';
   return data < hoje ? 'passado' : 'futuro';
 }
 
 function DiaPilula({ data, plano, estado, onClick }: { data: string; plano: DiaPlanejado; estado: EstadoDia; onClick: () => void }) {
   const dia = (deIso(data).getDay() + 6) % 7;
-  const Ic = plano.tipoPrincipal === 'corrida' ? IcTenis : IcHalter;
+  const Ic = plano.descanso ? () => <span aria-hidden="true">🌿</span> : plano.tipoPrincipal === 'corrida' ? IcTenis : IcHalter;
   return (
     <button className={`pilula pilula--${plano.tipoPrincipal === 'corrida' ? 'corr' : 'musc'} pilula--${estado}`} onClick={onClick}
       aria-label={`${SIGLA[dia]} ${formatarData(data)}: ${plano.titulo}, ${estado}`}>
@@ -75,10 +77,7 @@ export function Programa() {
       </header>
 
       <div className="legenda-fases entra">
-        <span><i className="ponto ponto--Base" /> Base</span>
-        <span><i className="ponto ponto--Progressão" /> Progressão</span>
-        <span><i className="ponto ponto--Intensificação" /> Intensificação</span>
-        <span><i className="ponto ponto--Recuperação" /> Recuperação</span>
+        {planoAtual().fases.map((f) => <span key={f.nome}><i className={`ponto ponto--${f.nome}`} /> {f.nome}</span>)}
       </div>
 
       <div className="linha-tempo entra">
@@ -86,7 +85,8 @@ export function Programa() {
           const sp = semanaDoPrograma(cfg, sc);
           const fase = faseDaSemana(sp);
           const ds = dias(sc);
-          const feitos = ds.filter((d) => estadoDia(d.data, hoje, porData) === 'feito').length;
+          const feitos = ds.filter((d) => !d.plano.descanso && estadoDia(d.data, hoje, porData) === 'feito').length;
+          const nTreinos = ds.filter((d) => !d.plano.descanso).length;
           const expandida = semanaAberta === sc;
           return (
             <Card key={sc} className={`semana semana--${fase} ${sc === atual ? 'semana--atual' : ''} ${expandida ? 'semana--aberta' : ''}`}>
@@ -96,12 +96,12 @@ export function Programa() {
                   <strong>Semana {sp}{cfg.repetidas.includes(sc) ? ' · repetição' : ''}{sc === atual ? ' · atual' : ''}</strong>
                   <span>{fase} · {curta(ds[0].data)} – {curta(ds[6].data)}</span>
                 </span>
-                <span className="semana__prog">{feitos}/7</span>
+                <span className="semana__prog">{feitos}/{nTreinos}</span>
               </button>
               {expandida && (
                 <div className="semana__dias">
                   {ds.map((d) => (
-                    <DiaPilula key={d.data} data={d.data} plano={d.plano} estado={estadoDia(d.data, hoje, porData)}
+                    <DiaPilula key={d.data} data={d.data} plano={d.plano} estado={estadoDia(d.data, hoje, porData, d.plano.descanso)}
                       onClick={() => setDetalhe(d)} />
                   ))}
                 </div>

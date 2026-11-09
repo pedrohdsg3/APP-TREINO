@@ -1,7 +1,7 @@
 import { useEffect, useRef, useState } from 'react';
 import { useRegisterSW } from 'virtual:pwa-register/react';
 import { NavInferior, ORDEM_ABAS, type Aba } from './ui/NavInferior';
-import { Hoje } from './screens/Hoje';
+import { Hoje, type ModoInicio } from './screens/Hoje';
 import { Programa } from './screens/Programa';
 import { Evolucao } from './screens/Evolucao';
 import { Perfil } from './screens/Perfil';
@@ -13,8 +13,25 @@ import { isoLocal } from './lib/datas';
 import type { MusculacaoPlanejada, DiaPlanejado } from './engine/plano';
 import { TreinoCorrida } from './screens/TreinoCorrida';
 import { lerCorridaAtiva, montarCorrida, type CorridaAtiva } from './engine/corridaAtiva';
+import { ativarPerfil, listarPerfis, perfilComTreinoEmAndamento, type Perfil as TPerfil } from './lib/perfis';
+import { EscolherPerfil } from './screens/EscolherPerfil';
+
+/** Perfil inicial: quem tem treino em andamento; senão, se só existe um, ele; senão, a tela de escolha. */
+function perfilInicial(): TPerfil | null {
+  const p = perfilComTreinoEmAndamento() ?? (listarPerfis().length === 1 ? listarPerfis()[0] : null);
+  if (p) ativarPerfil(p);
+  return p;
+}
 
 export function App() {
+  const [perfil, setPerfil] = useState<TPerfil | null>(perfilInicial);
+  if (!perfil) {
+    return <EscolherPerfil aoEscolher={(p) => { ativarPerfil(p); setPerfil(p); }} />;
+  }
+  return <AppDoPerfil key={perfil.id} aoTrocarPerfil={() => setPerfil(null)} />;
+}
+
+function AppDoPerfil({ aoTrocarPerfil }: { aoTrocarPerfil: () => void }) {
   const [aba, setAba] = useState<Aba>('hoje');
   const [direcao, setDirecao] = useState<'esq' | 'dir'>('esq');
   const [aviso, setAviso] = useState<string | null>(null);
@@ -28,10 +45,11 @@ export function App() {
     setTreino(montarTreino(m, { sessaoId: novoId(), data: isoLocal(), semana, agora: Date.now(), historico }));
   }
 
-  function iniciar(p: DiaPlanejado, modo: 'principal' | 'musculacao') {
-    if (modo === 'musculacao' || p.tipoPrincipal === 'musculacao') return void iniciarMusculacao(p.musculacao!, p.semana);
-    const c = p.corrida!;
-    setCorrida(montarCorrida(c, { sessaoId: novoId(), data: isoLocal(), semana: p.semana, agora: Date.now(), contagemSeg: 5, treinoId: c.titulo === 'Cardio sem impacto' ? 'cardio' : c.tipo }));
+  function iniciar(p: DiaPlanejado, modo: ModoInicio) {
+    if (modo === 'musculacao' || (modo === 'principal' && p.tipoPrincipal === 'musculacao')) return void iniciarMusculacao(p.musculacao!, p.semana);
+    const c = modo === 'cardio' ? p.cardio! : p.corrida!;
+    const treinoId = c.tipo === 'cardio' ? 'cardio-leve' : c.titulo === 'Cardio sem impacto' ? 'cardio' : c.tipo;
+    setCorrida(montarCorrida(c, { sessaoId: novoId(), data: isoLocal(), semana: p.semana, agora: Date.now(), contagemSeg: 5, treinoId }));
   }
 
   function corridaLivre() {
@@ -60,17 +78,17 @@ export function App() {
     return <TreinoMusculacao inicial={treino} aoSair={(salvo) => { setTreino(null); sair(salvo, 'Treino salvo! Bom trabalho 💪'); }} />;
   }
   if (corrida) {
-    return <TreinoCorrida inicial={corrida} aoSair={(salvo) => { setCorrida(null); sair(salvo, 'Corrida salva! 🏃'); }} />;
+    return <TreinoCorrida inicial={corrida} aoSair={(salvo) => { setCorrida(null); sair(salvo, corrida.treinoId === 'cardio-leve' ? 'Cardio salvo! 🚶' : 'Corrida salva! 🏃'); }} />;
   }
 
   return (
     <div className="app">
       <main ref={principal} className="principal">
         <div key={aba} className={`transicao transicao--${direcao}`}>
-          {aba === 'hoje' && <Hoje aoIniciar={iniciar} aoCorridaLivre={corridaLivre} />}
+          {aba === 'hoje' && <Hoje aoIniciar={iniciar} aoCorridaLivre={corridaLivre} aoTrocarPerfil={aoTrocarPerfil} />}
           {aba === 'programa' && <Programa />}
           {aba === 'evolucao' && <Evolucao />}
-          {aba === 'perfil' && <Perfil />}
+          {aba === 'perfil' && <Perfil aoTrocarPerfil={aoTrocarPerfil} />}
         </div>
       </main>
       {temAtualizacao && (

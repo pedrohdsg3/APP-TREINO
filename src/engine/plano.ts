@@ -1,51 +1,30 @@
 // Monta o treino planejado de qualquer dia do programa.
-import { EXERCICIOS, TREINOS_MUSCULACAO, DESCANSO_PADRAO, type ItemTreino, type TreinoMusculacaoId, type Grupo } from '../data/musculacao';
+import { EXERCICIOS, DESCANSO_PADRAO, type ItemTreino, type TreinoMusculacaoId, type Grupo } from '../data/musculacao';
 import { CORRIDA_BASE, CORRIDA_INTERVALADA, CORRIDA_LEVE, AQUECIMENTO_SEG, DESAQUECIMENTO_SEG, type Fase } from '../data/corrida';
+import { PLANO_PEDRO, minutosCardio, type DefinicaoPlano, type DiaModelo, type NomeFase, type TipoCorrida } from '../data/planos';
 import { diasEntre, somarDias } from '../lib/datas';
+
+export type { DiaModelo, NomeFase, TipoCorrida, DefinicaoPlano };
+
+// ---------- Plano do perfil ativo ----------
+let ativo: DefinicaoPlano = PLANO_PEDRO;
+/** Define o plano usado por todas as funções abaixo (troca de perfil). */
+export function usarPlano(p: DefinicaoPlano) { ativo = p; }
+export const planoAtual = () => ativo;
 
 export const SEMANAS_PROGRAMA = 12;
 export const INICIO_PADRAO = '2026-11-09'; // segunda-feira
 
-export type NomeFase = 'Base' | 'Recuperação' | 'Progressão' | 'Intensificação';
-
-export function faseDaSemana(semana: number): NomeFase {
-  if (semana === 4 || semana === 8 || semana === 12) return 'Recuperação';
-  if (semana <= 3) return 'Base';
-  if (semana <= 7) return 'Progressão';
-  return 'Intensificação';
-}
+export const faseDaSemana = (semana: number): NomeFase => ativo.fase(semana);
 export const ehRecuperacao = (semana: number) => faseDaSemana(semana) === 'Recuperação';
+export const orientacaoFase = (fase: NomeFase) => ativo.orientacao[fase] ?? '';
+export const orientacaoCorrida = (fase: NomeFase) => ativo.orientacaoCorrida[fase] ?? '';
+/** Estilo visual da fase (classe CSS). */
+export const estiloFase = (fase: NomeFase) => ativo.fases.find((f) => f.nome === fase)?.estilo ?? 'base';
 
-export const ORIENTACAO_CORRIDA: Record<NomeFase, string> = {
-  Base: 'Progressão por tempo e esforço, não por pace. Trote no ritmo em que você consegue falar frases.',
-  Progressão: 'Blocos de trote mais longos, mesmo esforço confortável. Nunca aumente tempo e intensidade juntos.',
-  Intensificação: 'Rumo aos 30 minutos contínuos. Ritmo confortável; se o joelho reclamar, volte a caminhar.',
-  Recuperação: 'Semana de recuperação: menos volume para o corpo (e o joelho) assimilarem.',
-};
-
-export const ORIENTACAO_FASE: Record<NomeFase, string> = {
-  Base: 'Esforço 7–8/10, deixando 1–2 repetições na reserva. Aprenda os movimentos e ajuste as cargas.',
-  Progressão: 'Esforço 8–9/10. Hora de subir as cargas.',
-  Intensificação: 'Cargas mais pesadas mantendo a técnica. Busque seus PRs 🏆',
-  Recuperação: 'Semana leve: −1 série por exercício e carga ~10% menor. Deixe o corpo assimilar.',
-};
-
-// ---------- Semana-padrão ----------
-export type TipoCorrida = 'base' | 'intervalada' | 'leve';
-export interface DiaModelo {
-  musculacao?: TreinoMusculacaoId;
-  corrida?: TipoCorrida;
-}
-/** 0 = segunda ... 6 = domingo */
-export const SEMANA_PADRAO: DiaModelo[] = [
-  { musculacao: 'peito-triceps' },
-  { corrida: 'base' },
-  { musculacao: 'costas-biceps' },
-  { corrida: 'intervalada' },
-  { musculacao: 'ombro-bracos' },
-  { musculacao: 'pernas' },
-  { corrida: 'leve', musculacao: 'abdomen' },
-];
+/** Dias da semana (0 = segunda) que contam na meta: têm musculação ou corrida e não são descanso. */
+export const diasComTreino = () => ativo.semana.map((d) => !d.descanso && !!(d.musculacao || d.corrida));
+export const treinosPorSemana = () => diasComTreino().filter(Boolean).length;
 
 // ---------- Calendário (com semanas repetidas) ----------
 export interface ConfigPrograma {
@@ -103,7 +82,7 @@ export interface MusculacaoPlanejada {
   minutos: number;
 }
 export interface CorridaPlanejada {
-  tipo: TipoCorrida;
+  tipo: TipoCorrida | 'cardio';
   titulo: string;
   resumo: string;
   esforco: string;
@@ -121,6 +100,10 @@ export interface DiaPlanejado {
   tipoPrincipal: 'musculacao' | 'corrida';
   musculacao?: MusculacaoPlanejada;
   corrida?: CorridaPlanejada;
+  /** cardio leve opcional depois do treino (ou o próprio dia, se for descanso) */
+  cardio?: CorridaPlanejada;
+  /** dia de descanso (só cardio leve opcional) */
+  descanso: boolean;
   minutos: number;
   grupos: string[];
 }
@@ -145,6 +128,15 @@ export function cardioAlternativo(): CorridaPlanejada {
   };
 }
 
+/** Cardio leve de 10–20 min (caminhada inclinada, escada, bike ou elíptico). */
+export function cardioLeve(semana: number): CorridaPlanejada {
+  const seg = minutosCardio(semana) * 60;
+  return {
+    tipo: 'cardio', titulo: 'Cardio leve', resumo: `${seg / 60}' caminhada inclinada, escada, bike ou elíptico`,
+    esforco: 'Leve · 5–6/10, dá para conversar', fases: [{ tipo: 'caminhada', seg, rotulo: 'CARDIO LEVE' }], utilSeg: seg, totalSeg: seg,
+  };
+}
+
 export function corridaPlanejada(tipo: TipoCorrida, semana: number): CorridaPlanejada {
   const tabela = tipo === 'base' ? CORRIDA_BASE : tipo === 'intervalada' ? CORRIDA_INTERVALADA : CORRIDA_LEVE;
   const t = tabela[Math.min(Math.max(semana, 1), SEMANAS_PROGRAMA) - 1];
@@ -158,13 +150,14 @@ export function corridaPlanejada(tipo: TipoCorrida, semana: number): CorridaPlan
 }
 
 export function musculacaoPlanejada(id: TreinoMusculacaoId, semana: number): MusculacaoPlanejada {
-  const t = TREINOS_MUSCULACAO[id];
+  const t = ativo.treinos[id];
   const rec = ehRecuperacao(semana);
+  const tirar = rec && ativo.menosUmaSerieNaRecuperacao;
   const itens: ItemPlanejado[] = t.itens(semana).map((it) => {
     const ex = EXERCICIOS[it.exercicioId];
     return {
       ...it,
-      series: rec ? Math.max(1, it.series - 1) : it.series,
+      series: tirar ? Math.max(1, it.series - 1) : it.series,
       descanso: it.descanso ?? DESCANSO_PADRAO[ex.tipo],
       cargaPct: rec ? 90 : 100,
     };
@@ -178,17 +171,21 @@ export function musculacaoPlanejada(id: TreinoMusculacaoId, semana: number): Mus
 export interface OpcoesDia { recuoCorrida?: number; cardioAlternativo?: boolean }
 
 export function diaPlanejado(semana: number, dia: number, op: OpcoesDia = {}): DiaPlanejado {
-  const modelo = SEMANA_PADRAO[dia];
+  const modelo = ativo.semana[dia];
   const musculacao = modelo.musculacao ? musculacaoPlanejada(modelo.musculacao, semana) : undefined;
   const semCorr = Math.max(1, semana - (op.recuoCorrida ?? 0));
-  const corrida = !modelo.corrida ? undefined : op.cardioAlternativo ? cardioAlternativo() : corridaPlanejada(modelo.corrida, semCorr);
+  let corrida = !modelo.corrida ? undefined : op.cardioAlternativo ? cardioAlternativo() : corridaPlanejada(modelo.corrida, semCorr);
   const fase = faseDaSemana(semana);
-  const titulo = corrida && musculacao ? `${corrida.titulo} + ${musculacao.titulo}` : (corrida?.titulo ?? musculacao!.titulo);
+  const descanso = !!modelo.descanso;
+  // dia de descanso: o "treino" é o cardio leve opcional
+  let cardio = modelo.cardio ? cardioLeve(semana) : undefined;
+  if (descanso && cardio) { corrida = cardio; cardio = undefined; }
+  const titulo = descanso ? 'Descanso ativo' : corrida && musculacao ? `${corrida.titulo} + ${musculacao.titulo}` : (corrida?.titulo ?? musculacao!.titulo);
   const minutos = Math.round((corrida ? corrida.totalSeg / 60 : 0) + (musculacao?.minutos ?? 0));
-  const grupos = corrida
-    ? [corrida.resumo, ...(musculacao ? musculacao.grupos : [])]
+  const grupos = descanso ? ['Recuperação', 'Cardio leve opcional']
+    : corrida ? [corrida.resumo, ...(musculacao ? musculacao.grupos : [])]
     : musculacao!.grupos;
-  return { semana, dia, fase, recuperacao: fase === 'Recuperação', titulo, tipoPrincipal: corrida ? 'corrida' : 'musculacao', musculacao, corrida, minutos, grupos };
+  return { semana, dia, fase, recuperacao: fase === 'Recuperação', titulo, tipoPrincipal: corrida ? 'corrida' : 'musculacao', musculacao, corrida, cardio, descanso, minutos, grupos };
 }
 
 /** Plano de uma data, com os ajustes de corrida aplicados. null fora do programa. */
@@ -203,7 +200,7 @@ export function proximaCorrida(c: ConfigPrograma, apos: string): string | undefi
   for (let i = 1; i <= 7; i++) {
     const d = somarDias(apos, i);
     const p = posicao(c, d);
-    if (p.estado === 'durante' && SEMANA_PADRAO[p.dia].corrida) return d;
+    if (p.estado === 'durante' && ativo.semana[p.dia].corrida) return d;
   }
   return undefined;
 }

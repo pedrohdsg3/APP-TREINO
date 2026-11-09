@@ -208,14 +208,16 @@ function Registro({ t, atualizar, aoSair, aoDor }: {
     <div className="guiado">
       <div className="guiado__corpo resumo entra">
         <div className="resumo__hero">
-          <div className="resumo__trofeu resumo__trofeu--corr">🏃</div>
-          <h1 className="guiado__h1">Corrida concluída!</h1>
+          <div className="resumo__trofeu resumo__trofeu--corr">{t.treinoId === 'cardio-leve' ? '🚶' : '🏃'}</div>
+          <h1 className="guiado__h1">{t.treinoId === 'cardio-leve' ? 'Cardio concluído!' : 'Corrida concluída!'}</h1>
           <p className="sutil">{t.titulo} · {t.resumo}</p>
         </div>
         <div className="resumo__grade">
           <div className="stat"><span>Duração</span><strong className="num">{fmtRelogio(r.duracaoSeg)}</strong></div>
-          <div className="stat"><span>Trotando</span><strong className="num">{fmtRelogio(r.troteSeg)}</strong>
+          {t.treinoId !== 'cardio-leve' && (
+            <div className="stat"><span>Trotando</span><strong className="num">{fmtRelogio(r.troteSeg)}</strong>
             {t.modo === 'guiada' && <small>maior trecho {fmtRelogio(r.maiorTroteSeg)}</small>}</div>
+          )}
           <label className="stat stat--input">
             <span>Distância (km)</span>
             <input inputMode="decimal" placeholder="0,0" value={km} onChange={(e) => setKm(e.target.value)} aria-label="Distância em km" />

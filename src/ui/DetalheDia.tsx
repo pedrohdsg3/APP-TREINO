@@ -4,7 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { EXERCICIOS } from '../data/musculacao';
 import { REGRAS_JOELHO } from '../data/corrida';
-import { ORIENTACAO_CORRIDA, ORIENTACAO_FASE, formatarDuracao, prescricao, type CorridaPlanejada, type DiaPlanejado, type MusculacaoPlanejada } from '../engine/plano';
+import { orientacaoCorrida, orientacaoFase, formatarDuracao, prescricao, type CorridaPlanejada, type DiaPlanejado, type MusculacaoPlanejada } from '../engine/plano';
 import { dataPorExtenso, formatarData } from '../lib/datas';
 import { Chip } from './Componentes';
 import { IcHalter, IcRelogio, IcTenis } from './Icones';
@@ -42,11 +42,23 @@ function BlocoCorrida({ c }: { c: CorridaPlanejada }) {
   );
 }
 
+function BlocoCardio({ c, extra }: { c: CorridaPlanejada; extra?: boolean }) {
+  return (
+    <div className="bloco-plano">
+      <div className="bloco-plano__topo">
+        <Chip cor="corr">🚶 Cardio leve{extra ? ' · opcional' : ''}</Chip>
+        <span className="detalhe-meta"><IcRelogio tamanho={15} /> {formatarDuracao(c.totalSeg)}</span>
+      </div>
+      <p className="sutil">{c.resumo}. {c.esforco}. {extra ? 'Depois da musculação.' : ''}</p>
+    </div>
+  );
+}
+
 function BlocoMusculacao({ m, pct }: { m: MusculacaoPlanejada; pct: number }) {
   return (
     <div className="bloco-plano">
       <div className="bloco-plano__topo">
-        <Chip cor="musc"><IcHalter tamanho={15} /> {m.titulo}</Chip>
+        <Chip cor="musc"><IcHalter tamanho={15} /> {m.id === 'abdomen' ? 'Abdômen' : 'Musculação'}</Chip>
         <span className="detalhe-meta"><IcRelogio tamanho={15} /> ~{m.minutos} min</span>
       </div>
       {pct < 100 && <p className="sutil">Carga ~{pct}% da habitual nesta semana.</p>}
@@ -87,10 +99,11 @@ export function DetalheDia({ data, plano }: { data: string; plano: DiaPlanejado 
       <p className="detalhe__data">{dataPorExtenso(data)} · {formatarData(data)}</p>
       <h2 className="detalhe__titulo">{plano.titulo}</h2>
       <p className="detalhe__fase">Semana {plano.semana} · Fase {plano.fase}</p>
-      <p className="detalhe__orientacao">{(plano.tipoPrincipal === 'corrida' ? ORIENTACAO_CORRIDA : ORIENTACAO_FASE)[plano.fase]}</p>
+      <p className="detalhe__orientacao">{plano.descanso ? 'Dia de descanso. Se quiser se mexer, um cardio leve ajuda na recuperação.' : (plano.tipoPrincipal === 'corrida' ? orientacaoCorrida : orientacaoFase)(plano.fase)}</p>
 
-      {plano.corrida && <BlocoCorrida c={plano.corrida} />}
+      {plano.corrida && (plano.corrida.tipo === 'cardio' ? <BlocoCardio c={plano.corrida} /> : <BlocoCorrida c={plano.corrida} />)}
       {plano.musculacao && <BlocoMusculacao m={plano.musculacao} pct={plano.musculacao.itens[0]?.cargaPct ?? 100} />}
+      {plano.cardio && <BlocoCardio c={plano.cardio} extra />}
 
       <h3 className="detalhe__secao">Realizado</h3>
       {sessoes.length === 0 ? (
@@ -100,7 +113,7 @@ export function DetalheDia({ data, plano }: { data: string; plano: DiaPlanejado 
           {sessoes.map((s) => (
             <li key={s.id} className="realizado">
               <span>
-                {s.tipo === 'corrida' ? (s.treinoId === 'livre' ? '🏃 Corrida livre' : '🏃 Corrida') : '💪 Musculação'} · {STATUS[s.status]}
+                {s.tipo === 'cardio' ? '🚶 Cardio leve' : s.tipo === 'corrida' ? (s.treinoId === 'livre' ? '🏃 Corrida livre' : '🏃 Corrida') : '💪 Musculação'} · {STATUS[s.status]}
                 {s.duracaoSeg ? ` · ${formatarDuracao(s.duracaoSeg)}` : ''}{s.esforco ? ` · esforço ${s.esforco}/10` : ''}
               </span>
               {excluir === s.id ? (

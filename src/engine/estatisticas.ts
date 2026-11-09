@@ -4,7 +4,8 @@ import { somarDias } from '../lib/datas';
 
 /** Datas (aaaa-mm-dd) com ao menos um treino feito */
 export function diasFeitos(sessoes: Sessao[]): Set<string> {
-  return new Set(sessoes.filter((s) => s.status === 'feito' || s.status === 'parcial').map((s) => s.data));
+  // cardio leve é extra: não conta como "treino do dia"
+  return new Set(sessoes.filter((s) => s.tipo !== 'cardio' && (s.status === 'feito' || s.status === 'parcial')).map((s) => s.data));
 }
 
 /** Dias da semana do programa (segunda..domingo começando em inicioSemana) com treino feito */
@@ -19,16 +20,21 @@ export function feitosNaSemana(sessoes: Sessao[], inicioSemana: string): number 
  * Sequência de dias seguidos cumprindo o plano. Todo dia tem treino planejado,
  * então conta dias consecutivos com treino feito. Hoje ainda não feito não quebra a sequência.
  */
-export function sequencia(sessoes: Sessao[], hoje: string): number {
+export function sequencia(sessoes: Sessao[], hoje: string, ehDescanso: (data: string) => boolean = () => false): number {
   const feitos = diasFeitos(sessoes);
-  let d = feitos.has(hoje) ? hoje : somarDias(hoje, -1);
+  // dias de descanso não quebram nem somam na sequência
+  let d = feitos.has(hoje) || ehDescanso(hoje) ? hoje : somarDias(hoje, -1);
   let n = 0;
-  while (feitos.has(d)) { n++; d = somarDias(d, -1); }
+  for (let i = 0; i < 400; i++) {
+    if (feitos.has(d)) n++;
+    else if (!ehDescanso(d)) break;
+    d = somarDias(d, -1);
+  }
   return n;
 }
 
 export function ultimaSessao(sessoes: Sessao[], hoje: string): Sessao | undefined {
   return sessoes
-    .filter((s) => s.status !== 'pulado' && s.data <= hoje)
+    .filter((s) => s.status !== 'pulado' && s.tipo !== 'cardio' && s.data <= hoje)
     .sort((a, b) => (a.data === b.data ? (b.duracaoSeg ?? 0) - (a.duracaoSeg ?? 0) : b.data.localeCompare(a.data)))[0];
 }

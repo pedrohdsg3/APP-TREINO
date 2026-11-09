@@ -782,3 +782,39 @@ strong, .num { font-variant-numeric: tabular-nums; }
 .historico-corpo .link { padding: 0; margin: 0; min-width: 32px; min-height: 32px; }
 .grafico__nota--topo { margin: 0 0 4px; }
 .card > .link { margin: 4px auto 10px; }
+.mapa__cel--descanso { background: transparent; box-shadow: inset 0 0 0 1px var(--borda); background-image: radial-gradient(circle, var(--texto-3) 1.2px, transparent 1.6px); background-size: 100% 100%; opacity: 0.6; }
+
+/* =========================================================
+   Perfis
+   ========================================================= */
+.escolher { min-height: 100%; height: 100%; max-width: 560px; margin: 0 auto; display: flex; flex-direction: column; }
+.escolher__corpo { flex: 1; overflow-y: auto; padding: calc(env(safe-area-inset-top) + 36px) 20px 24px; display: flex; flex-direction: column; gap: 18px; }
+.escolher__titulo { font-size: 32px; font-weight: 800; letter-spacing: -0.03em; }
+.escolher__voltar { align-self: flex-start; padding: 0; }
+.escolher__lista { display: flex; flex-direction: column; gap: 12px; margin-top: 8px; }
+.jogador {
+  display: flex; align-items: center; gap: 16px; width: 100%; text-align: left; padding: 18px; min-height: 88px;
+  border-radius: var(--raio); background: var(--superficie); border: 1px solid var(--borda); box-shadow: var(--sombra-1);
+  transition: transform 0.18s var(--ease), box-shadow 0.2s;
+}
+.jogador:active { transform: scale(0.98); }
+.jogador__avatar { width: 56px; height: 56px; border-radius: 18px; display: grid; place-items: center; font-size: 30px; background: linear-gradient(145deg, var(--musc-suave), var(--corr-suave)); flex-shrink: 0; }
+.jogador__info { flex: 1; display: flex; flex-direction: column; gap: 3px; min-width: 0; }
+.jogador__info strong { font-size: 19px; font-weight: 760; letter-spacing: -0.01em; }
+.jogador__info span { font-size: 13.5px; color: var(--texto-2); }
+.jogador__seta { font-size: 26px; color: var(--texto-3); }
+.jogador--novo { background: transparent; border-style: dashed; box-shadow: none; }
+.jogador--novo .jogador__avatar { background: var(--superficie-2); color: var(--texto-2); font-size: 26px; }
+.emojis { display: grid; grid-template-columns: repeat(6, minmax(0, 1fr)); gap: 8px; }
+.emoji-op { aspect-ratio: 1; border-radius: 14px; background: var(--superficie-2); font-size: 24px; transition: transform 0.15s var(--ease); }
+.emoji-op.on { background: var(--musc-suave); box-shadow: inset 0 0 0 2px var(--musc); transform: scale(1.05); }
+.opcao--marcada { border: 2px solid var(--musc); background: var(--musc-suave); }
+.perfil-card { display: flex; align-items: center; gap: 14px; }
+.cabecalho__linha { display: flex; align-items: center; justify-content: space-between; gap: 10px; }
+.avatar { position: relative; width: 48px; height: 48px; border-radius: 16px; display: grid; place-items: center; font-size: 24px; background: linear-gradient(145deg, var(--musc-suave), var(--corr-suave)); flex-shrink: 0; box-shadow: var(--sombra-1); }
+.avatar small { position: absolute; right: -4px; bottom: -4px; width: 20px; height: 20px; border-radius: 50%; background: var(--superficie); box-shadow: var(--sombra-1); font-size: 11px; display: grid; place-items: center; color: var(--texto-2); }
+.semana--Adaptação::before { background: var(--texto-3); opacity: 0.35; }
+.semana--Construção::before { background: var(--musc); opacity: 0.6; }
+.ponto--Adaptação { background: var(--texto-3); }
+.ponto--Construção { background: var(--musc); }
+.pilula--descanso { opacity: 0.7; background: transparent; box-shadow: inset 0 0 0 1px var(--borda); }

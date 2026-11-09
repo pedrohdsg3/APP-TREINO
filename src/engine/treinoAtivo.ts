@@ -1,4 +1,5 @@
 // Estado do treino de musculação em andamento. Funções puras + persistência no localStorage
+import { chaveLocal } from '../lib/perfis';
 // (gravado a cada ação, para retomar se o app fechar no meio).
 import { EXERCICIOS } from '../data/musculacao';
 import type { ItemPlanejado, MusculacaoPlanejada } from './plano';
@@ -199,16 +200,16 @@ export function resumir(t: TreinoAtivo, agora: number): Resumo {
 }
 
 // ---------- persistência ----------
-const CHAVE = 'treino.ativo';
+const CHAVE_BASE = 'treino.ativo';
 export function lerTreinoAtivo(): TreinoAtivo | null {
   try {
-    const t = JSON.parse(localStorage.getItem(CHAVE) ?? 'null');
+    const t = JSON.parse(localStorage.getItem(chaveLocal(CHAVE_BASE)) ?? 'null');
     return t?.versao === 1 ? t : null;
   } catch { return null; }
 }
 export function gravarTreinoAtivo(t: TreinoAtivo | null) {
   try {
-    if (t) localStorage.setItem(CHAVE, JSON.stringify(t));
-    else localStorage.removeItem(CHAVE);
+    if (t) localStorage.setItem(chaveLocal(CHAVE_BASE), JSON.stringify(t));
+    else localStorage.removeItem(chaveLocal(CHAVE_BASE));
   } catch { /* storage cheio/bloqueado */ }
 }
