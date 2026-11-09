@@ -19,7 +19,7 @@ export interface Perfil {
 
 const CHAVE = 'treino.perfis';
 const PEDRO: Perfil = { id: 'pedro', nome: 'Pedro', emoji: '💪', plano: 'pedro', banco: 'app-treino', criado: '2026-11-09', inicio: '2026-11-09', personagem: 'pedro' };
-const YANA: Perfil = { id: 'yana', nome: 'Yana', emoji: '🌸', plano: 'feminino', banco: 'app-treino-yana', criado: '2026-11-10', inicio: '2026-11-16', personagem: 'yana' };
+const YANA: Perfil = { id: 'yana', nome: 'Yana', emoji: '🌸', plano: 'feminino', banco: 'app-treino-yana', criado: '2026-11-09', inicio: '2026-11-09', personagem: 'yana' };
 /** Marca que o perfil da Yana já foi adicionado uma vez (se for excluído, não volta). */
 const SEMEADO = 'treino.perfis.yana';
 
@@ -33,7 +33,13 @@ export function listarPerfis(): Perfil[] {
       salvarPerfis(l);
     }
     // perfis antigos ganham o personagem ilustrado
-    return l.map((p) => (p.personagem || !['pedro', 'yana'].includes(p.id) ? p : { ...p, personagem: p.id as 'pedro' | 'yana' }));
+    l = l.map((p) => (p.personagem || !['pedro', 'yana'].includes(p.id) ? p : { ...p, personagem: p.id as 'pedro' | 'yana' }));
+    // a Yana passou a começar junto com o Pedro (09/11/2026), não mais em 16/11
+    if (l.some((p) => p.id === 'yana' && p.inicio === '2026-11-16')) {
+      l = l.map((p) => (p.id === 'yana' && p.inicio === '2026-11-16' ? { ...p, inicio: '2026-11-09' } : p));
+      salvarPerfis(l);
+    }
+    return l;
   } catch { /* sem storage */ }
   return [PEDRO, YANA];
 }
