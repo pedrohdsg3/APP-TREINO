@@ -1,4 +1,5 @@
 // Conteúdo da folha de um dia: treino planejado completo + o que foi realizado.
+import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { EXERCICIOS } from '../data/musculacao';
@@ -72,6 +73,15 @@ const STATUS = { feito: 'Concluído ✅', parcial: 'Parcial', pulado: 'Pulado' }
 
 export function DetalheDia({ data, plano }: { data: string; plano: DiaPlanejado }) {
   const sessoes = useLiveQuery(() => db.sessoes.where('data').equals(data).toArray(), [data]) ?? [];
+  const [excluir, setExcluir] = useState<string | null>(null);
+  async function apagar(id: string) {
+    await db.transaction('rw', db.sessoes, db.series, db.corridas, async () => {
+      await db.series.where('sessaoId').equals(id).delete();
+      await db.corridas.delete(id);
+      await db.sessoes.delete(id);
+    });
+    setExcluir(null);
+  }
   return (
     <div className="detalhe">
       <p className="detalhe__data">{dataPorExtenso(data)} · {formatarData(data)}</p>
@@ -88,9 +98,19 @@ export function DetalheDia({ data, plano }: { data: string; plano: DiaPlanejado 
       ) : (
         <ul className="lista-simples">
           {sessoes.map((s) => (
-            <li key={s.id}>
-              {s.tipo === 'corrida' ? '🏃 Corrida' : '💪 Musculação'} · {STATUS[s.status]}
-              {s.duracaoSeg ? ` · ${formatarDuracao(s.duracaoSeg)}` : ''}{s.esforco ? ` · esforço ${s.esforco}/10` : ''}
+            <li key={s.id} className="realizado">
+              <span>
+                {s.tipo === 'corrida' ? (s.treinoId === 'livre' ? '🏃 Corrida livre' : '🏃 Corrida') : '💪 Musculação'} · {STATUS[s.status]}
+                {s.duracaoSeg ? ` · ${formatarDuracao(s.duracaoSeg)}` : ''}{s.esforco ? ` · esforço ${s.esforco}/10` : ''}
+              </span>
+              {excluir === s.id ? (
+                <span className="realizado__confirma">
+                  <button className="link link--perigo" onClick={() => apagar(s.id)}>Excluir mesmo</button>
+                  <button className="link link--sutil" onClick={() => setExcluir(null)}>Não</button>
+                </span>
+              ) : (
+                <button className="link link--sutil" onClick={() => setExcluir(s.id)} aria-label="Excluir este registro">Excluir</button>
+              )}
             </li>
           ))}
         </ul>

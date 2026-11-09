@@ -626,3 +626,6 @@ strong, .num { font-variant-numeric: tabular-nums; }
 .contagem__acoes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px 20px calc(env(safe-area-inset-bottom) + 22px); }
 .links-rodape { display: flex; justify-content: center; gap: 28px; }
 .link--perigo { color: var(--coral); }
+.realizado { display: flex; flex-direction: column; gap: 2px; }
+.realizado .link { padding: 4px 0 0; align-self: flex-start; font-size: 13px; }
+.realizado__confirma { display: flex; gap: 16px; }
