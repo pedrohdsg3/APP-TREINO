@@ -7,7 +7,7 @@ import { Folha } from '../ui/Folha';
 import { BarraFases, DetalheDia } from '../ui/DetalheDia';
 import { dataPorExtenso, formatarData, isoLocal, saudacao, somarDias, diasEntre } from '../lib/datas';
 import { useConfigPrograma } from '../lib/ajustes';
-import { SEMANAS_PROGRAMA, dataDoDia, diaPlanejado, posicao, formatarDuracao, type DiaPlanejado } from '../engine/plano';
+import { SEMANAS_PROGRAMA, dataDoDia, planoDaData, posicao, formatarDuracao, type DiaPlanejado } from '../engine/plano';
 import { feitosNaSemana, sequencia, ultimaSessao } from '../engine/estatisticas';
 
 function quando(data: string, hoje: string) {
@@ -18,7 +18,7 @@ function quando(data: string, hoje: string) {
   return formatarData(data);
 }
 
-export function Hoje({ aoIniciar }: { aoIniciar: (p: DiaPlanejado, modo: 'principal' | 'musculacao') => void }) {
+export function Hoje({ aoIniciar, aoCorridaLivre }: { aoIniciar: (p: DiaPlanejado, modo: 'principal' | 'musculacao') => void; aoCorridaLivre: () => void }) {
   const cfg = useConfigPrograma();
   const hoje = isoLocal();
   const sessoes = useLiveQuery(() => db.sessoes.toArray(), []) ?? [];
@@ -29,10 +29,8 @@ export function Hoje({ aoIniciar }: { aoIniciar: (p: DiaPlanejado, modo: 'princi
   const pos = posicao(cfg, hoje);
   // Antes do início: mostra o 1º treino. Depois do fim: nada planejado.
   const dataTreino = pos.estado === 'antes' ? cfg.inicio : hoje;
-  const posTreino = posicao(cfg, dataTreino);
-  const plano = posTreino.estado === 'durante' ? diaPlanejado(posTreino.semana, posTreino.dia) : null;
-  const proxPos = posicao(cfg, somarDias(dataTreino, 1));
-  const prox = proxPos.estado === 'durante' ? diaPlanejado(proxPos.semana, proxPos.dia) : null;
+  const plano = planoDaData(cfg, dataTreino);
+  const prox = planoDaData(cfg, somarDias(dataTreino, 1));
   const inicioSemana = pos.estado === 'durante' ? dataDoDia(cfg, pos.semanaCal, 0) : cfg.inicio;
   const feitos = feitosNaSemana(sessoes, inicioSemana);
   const seq = sequencia(sessoes, hoje);
@@ -112,6 +110,12 @@ export function Hoje({ aoIniciar }: { aoIniciar: (p: DiaPlanejado, modo: 'princi
           <span className="mini__sub">{peso ? `em ${formatarData(peso.data)}` : 'o registro rápido chega na etapa 5'}</span>
         </Card>
       </div>
+
+      <button className="extra entra" onClick={aoCorridaLivre}>
+        <span className="extra__icone"><IcTenis tamanho={20} /></span>
+        <span className="extra__texto"><strong>Corrida livre</strong><span>Cronômetro simples, fora do plano</span></span>
+        <span aria-hidden="true">›</span>
+      </button>
 
       <Folha aberta={!!detalhe} aoFechar={() => setDetalhe(null)} titulo="Treino do dia">
         {detalhe && <DetalheDia data={detalhe.data} plano={detalhe.plano} />}

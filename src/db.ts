@@ -42,6 +42,11 @@ export interface RegistroCorrida {
   paceSegKm?: number;
   esforco?: number;
   dorJoelho?: number;
+  /** segundos trotando e maior trecho contínuo de trote */
+  troteSeg?: number;
+  maiorTroteSeg?: number;
+  dorDurante?: number;
+  modo?: 'guiada' | 'livre';
 }
 export interface RegistroCorpo {
   data: string;

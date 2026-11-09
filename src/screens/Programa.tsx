@@ -8,7 +8,7 @@ import { IcHalter, IcTenis } from '../ui/Icones';
 import { deIso, formatarData, isoLocal } from '../lib/datas';
 import { salvarConfigPrograma, useConfigPrograma } from '../lib/ajustes';
 import {
-  SEMANAS_PROGRAMA, dataDoDia, diaPlanejado, faseDaSemana, posicao, repetirSemana,
+  SEMANAS_PROGRAMA, dataDoDia, planoDaData, faseDaSemana, posicao, repetirSemana,
   semanaDoPrograma, totalSemanasCalendario, type ConfigPrograma, type DiaPlanejado,
 } from '../engine/plano';
 
@@ -58,8 +58,10 @@ export function Programa() {
   const salvar = (c: ConfigPrograma) => salvarConfigPrograma(c);
 
   function dias(semanaCal: number) {
-    const sp = semanaDoPrograma(cfg!, semanaCal);
-    return Array.from({ length: 7 }, (_, d) => ({ data: dataDoDia(cfg!, semanaCal, d), plano: diaPlanejado(sp, d) }));
+    return Array.from({ length: 7 }, (_, d) => {
+      const data = dataDoDia(cfg!, semanaCal, d);
+      return { data, plano: planoDaData(cfg!, data)! };
+    });
   }
 
   return (
@@ -124,6 +126,12 @@ export function Programa() {
             <p className="sutil espaco">Semana ruim ou lesão? Repetir a semana adia o restante do programa em 7 dias.</p>
             <Botao variante="secundario" onClick={() => setConfirmar(true)}>Repetir a semana {pos.semana}</Botao>
           </>
+        )}
+        {(cfg.recuoCorrida ?? 0) > 0 && (
+          <div className="ajuste-ativo">
+            <span>🦵 Corrida {cfg.recuoCorrida} semana(s) atrás do programa (joelho).</span>
+            <button className="link" onClick={() => salvar({ ...cfg, recuoCorrida: Math.max(0, (cfg.recuoCorrida ?? 0) - 1) })}>Avançar 1 semana</button>
+          </div>
         )}
         {cfg.repetidas.length > 0 && (
           <button className="link" onClick={() => salvar({ ...cfg, repetidas: cfg.repetidas.slice(0, -1) })}>

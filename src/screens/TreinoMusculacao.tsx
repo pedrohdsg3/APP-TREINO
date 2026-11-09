@@ -18,6 +18,7 @@ import { Folha } from '../ui/Folha';
 import { Stepper } from '../ui/Stepper';
 import { Confete } from '../ui/Confete';
 import { IcHalter, IcTrofeu } from '../ui/Icones';
+import { Escala } from '../ui/Escala';
 import type { Sessao } from '../db';
 
 const DORES = ['Joelho', 'Ombro', 'Cotovelo', 'Punho', 'Lombar', 'Quadril', 'Outro'];
@@ -455,12 +456,7 @@ function ResumoTreino({ t, atualizar, aoSair }: PropsEtapa) {
 
         <div className="campo">
           <span>Percepção de esforço (1–10)</span>
-          <div className="escala" role="radiogroup" aria-label="Percepção de esforço">
-            {Array.from({ length: 10 }, (_, i) => i + 1).map((n) => (
-              <button key={n} role="radio" aria-checked={esforco === n} className={`escala__n nv-${n <= 4 ? 1 : n <= 6 ? 2 : n <= 8 ? 3 : 4} ${esforco === n ? 'on' : ''}`}
-                onClick={() => setEsforco(n)}>{n}</button>
-            ))}
-          </div>
+          <Escala de={1} ate={10} valor={esforco} onChange={setEsforco} rotulo="Percepção de esforço" />
           <small className="sutil">{esforco ? (esforco <= 4 ? 'Leve' : esforco <= 6 ? 'Moderado' : esforco <= 8 ? 'Forte' : 'Máximo') : 'Fase Base: o ideal é 7–8.'}</small>
         </div>
         <label className="campo">

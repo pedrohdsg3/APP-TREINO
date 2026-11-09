@@ -2,6 +2,8 @@
 import { db, type Sessao } from '../db';
 import type { HistoricoEx, TreinoAtivo } from '../engine/treinoAtivo';
 import { resumir, treinoConcluido } from '../engine/treinoAtivo';
+import type { CorridaAtiva } from '../engine/corridaAtiva';
+import { pace, resumirCorrida } from '../engine/corridaAtiva';
 
 export function novoId(): string {
   return globalThis.crypto?.randomUUID?.() ?? `${Date.now().toString(36)}-${Math.random().toString(36).slice(2)}`;
@@ -51,4 +53,33 @@ export async function salvarTreino(t: TreinoAtivo, extra: { esforco?: number; no
     }))));
   });
   return sessao;
+}
+
+// ---------------------------------------------------------------- corrida
+
+export async function salvarCorrida(t: CorridaAtiva, r: { distanciaKm?: number; esforco?: number; dorJoelho?: number; notas?: string }, agora: number) {
+  const res = resumirCorrida(t, agora);
+  const sessao: Sessao = {
+    id: t.sessaoId, data: t.data, tipo: 'corrida', status: 'feito', duracaoSeg: res.duracaoSeg,
+    esforco: r.esforco, notas: r.notas?.trim() || undefined, semana: t.semana, treinoId: t.treinoId,
+    inicioTs: t.inicio, fimTs: t.fim ?? agora,
+  };
+  await db.transaction('rw', db.sessoes, db.corridas, async () => {
+    await db.sessoes.put(sessao);
+    await db.corridas.put({
+      sessaoId: t.sessaoId, estrutura: t.resumo, duracaoSeg: res.duracaoSeg, distanciaKm: r.distanciaKm,
+      paceSegKm: pace(res.duracaoSeg, r.distanciaKm), esforco: r.esforco, dorJoelho: r.dorJoelho,
+      troteSeg: res.troteSeg, maiorTroteSeg: res.maiorTroteSeg, dorDurante: t.dorDurante, modo: t.modo,
+    });
+  });
+  return sessao;
+}
+
+/** Dor no joelho registrada na corrida anterior (antes desta sessão). */
+export async function dorCorridaAnterior(antesDe: number, excluirId: string): Promise<number | undefined> {
+  const sessoes = (await db.sessoes.where('tipo').equals('corrida').toArray())
+    .filter((s) => s.id !== excluirId && (s.inicioTs ?? 0) < antesDe)
+    .sort((a, b) => (b.inicioTs ?? 0) - (a.inicioTs ?? 0));
+  if (!sessoes[0]) return undefined;
+  return (await db.corridas.get(sessoes[0].id))?.dorJoelho;
 }
