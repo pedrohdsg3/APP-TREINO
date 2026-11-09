@@ -620,3 +620,9 @@ strong, .num { font-variant-numeric: tabular-nums; }
 .extra__texto { flex: 1; display: flex; flex-direction: column; }
 .extra__texto strong { font-size: 15px; color: var(--texto); }
 .extra__texto span { font-size: 13px; color: var(--texto-2); }
+
+/* contagem inicial e links do rodapé */
+.contagem__num { font-size: clamp(120px, 40vw, 180px); font-weight: 800; line-height: 1; color: var(--texto); letter-spacing: -0.05em; animation: pop 0.5s var(--ease) both; }
+.contagem__acoes { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; padding: 12px 20px calc(env(safe-area-inset-bottom) + 22px); }
+.links-rodape { display: flex; justify-content: center; gap: 28px; }
+.link--perigo { color: var(--coral); }

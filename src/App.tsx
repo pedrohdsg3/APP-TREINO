@@ -31,11 +31,11 @@ export function App() {
   function iniciar(p: DiaPlanejado, modo: 'principal' | 'musculacao') {
     if (modo === 'musculacao' || p.tipoPrincipal === 'musculacao') return void iniciarMusculacao(p.musculacao!, p.semana);
     const c = p.corrida!;
-    setCorrida(montarCorrida(c, { sessaoId: novoId(), data: isoLocal(), semana: p.semana, agora: Date.now(), treinoId: c.titulo === 'Cardio sem impacto' ? 'cardio' : c.tipo }));
+    setCorrida(montarCorrida(c, { sessaoId: novoId(), data: isoLocal(), semana: p.semana, agora: Date.now(), contagemSeg: 5, treinoId: c.titulo === 'Cardio sem impacto' ? 'cardio' : c.tipo }));
   }
 
   function corridaLivre() {
-    setCorrida(montarCorrida(null, { sessaoId: novoId(), data: isoLocal(), agora: Date.now(), treinoId: 'livre' }));
+    setCorrida(montarCorrida(null, { sessaoId: novoId(), data: isoLocal(), agora: Date.now(), contagemSeg: 5, treinoId: 'livre' }));
   }
 
   const sair = (salvo: boolean, msg: string) => {

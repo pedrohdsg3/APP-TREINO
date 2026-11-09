@@ -1,7 +1,7 @@
 // Modo Corrida: fases guiadas (ou cronômetro livre) → registro → cuidados com o joelho.
 import { useEffect, useRef, useState } from 'react';
 import {
-  encerrar, estadoFase, fmtPace, fraseDaFase, gravarCorridaAtiva, informarDor, pace, pausada, pausar,
+  comecarAgora, naContagem, encerrar, estadoFase, fmtPace, fraseDaFase, gravarCorridaAtiva, informarDor, pace, pausada, pausar,
   pularFase, resumirCorrida, retomar, tempoAtivo, totalPlano, type CorridaAtiva,
 } from '../engine/corridaAtiva';
 import { proximaCorrida } from '../engine/plano';
@@ -62,6 +62,8 @@ function Correndo({ t, atualizar, aoSair }: { t: CorridaAtiva; atualizar: Atuali
     }
   }, [e.indice, e.restante, e.concluida, e.decorridoFase, e.fase, parada, t.modo]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  if (naContagem(t, agora)) return <Contagem t={t} agora={agora} atualizar={atualizar} aoSair={aoSair} />;
+
   const decorrido = tempoAtivo(t, agora);
   const tipo = t.modo === 'livre' ? 'trote' : (e.fase?.tipo ?? 'desaquecimento');
   const progressoTotal = t.modo === 'livre' ? 0 : Math.min(1, e.noPlano / totalPlano(t));
@@ -121,7 +123,7 @@ function Correndo({ t, atualizar, aoSair }: { t: CorridaAtiva; atualizar: Atuali
       </footer>
 
       <Folha aberta={menu} aoFechar={() => setMenu(false)} titulo="Encerrar corrida">
-        <MenuEncerrar t={t} atualizar={atualizar} aoSair={aoSair} fechar={() => setMenu(false)} />
+        <MenuEncerrar t={t} atualizar={atualizar} aoSair={aoSair} fechar={() => setMenu(false)} recente={decorrido < 60} />
       </Folha>
       <Folha aberta={dor} aoFechar={() => setDor(false)} titulo="Dor no joelho">
         <DorDurante t={t} atualizar={atualizar} fechar={() => setDor(false)} />
@@ -130,8 +132,18 @@ function Correndo({ t, atualizar, aoSair }: { t: CorridaAtiva; atualizar: Atuali
   );
 }
 
-function MenuEncerrar({ atualizar, aoSair, fechar }: { t: CorridaAtiva; atualizar: Atualizar; aoSair: (s: boolean) => void; fechar: () => void }) {
+function MenuEncerrar({ atualizar, aoSair, fechar, recente }: { t: CorridaAtiva; atualizar: Atualizar; aoSair: (s: boolean) => void; fechar: () => void; recente: boolean }) {
   const [descartar, setDescartar] = useState(false);
+  if (recente) {
+    return (
+      <div className="detalhe">
+        <h2 className="detalhe__titulo">Cancelar a corrida?</h2>
+        <p className="detalhe__orientacao">Começou há menos de 1 minuto. Se foi sem querer, cancele: nada será salvo.</p>
+        <Botao grande className="btn--perigo" onClick={() => { gravarCorridaAtiva(null); aoSair(false); }}>Cancelar corrida</Botao>
+        <Botao variante="secundario" onClick={fechar}>Continuar correndo</Botao>
+      </div>
+    );
+  }
   return (
     <div className="detalhe">
       <h2 className="detalhe__titulo">Encerrar corrida?</h2>
@@ -187,6 +199,7 @@ function Registro({ t, atualizar, aoSair, aoDor }: {
   const [dor, setDor] = useState<number | undefined>(t.dorDurante);
   const [notas, setNotas] = useState('');
   const [salvando, setSalvando] = useState(false);
+  const [descartar, setDescartar] = useState(false);
   const [confete] = useState(Date.now());
   const dist = parseFloat(km.replace(',', '.'));
   const p = pace(r.duracaoSeg, Number.isFinite(dist) ? dist : undefined);
@@ -219,7 +232,7 @@ function Registro({ t, atualizar, aoSair, aoDor }: {
         <div className="campo">
           <span>Dor no joelho (0–10)</span>
           <Escala de={0} ate={10} valor={dor} onChange={setDor} rotulo="Dor no joelho" tipo="dor" />
-          <small className="sutil">{textoDor(dor)}</small>
+          <small className="sutil">{dor === undefined ? 'Opcional, mas ajuda a proteger o joelho: o app ajusta o plano se doer.' : textoDor(dor)}</small>
         </div>
         <label className="campo">
           <span>Nota</span>
@@ -227,7 +240,7 @@ function Registro({ t, atualizar, aoSair, aoDor }: {
         </label>
       </div>
       <div className="guiado__rodape">
-        <Botao grande cor="corr" disabled={salvando || dor === undefined} onClick={async () => {
+        <Botao grande cor="corr" disabled={salvando} onClick={async () => {
           setSalvando(true);
           const agora = Date.now();
           await salvarCorrida(t, { distanciaKm: Number.isFinite(dist) && dist > 0 ? dist : undefined, esforco, dorJoelho: dor, notas }, agora);
@@ -236,10 +249,49 @@ function Registro({ t, atualizar, aoSair, aoDor }: {
             const anterior = await dorCorridaAnterior(t.inicio, t.sessaoId);
             aoDor(dor!, (anterior ?? 0) >= 4);
           } else aoSair(true);
-        }}>{dor === undefined ? 'Informe a dor no joelho' : 'Salvar corrida ✅'}</Botao>
-        <button className="link" onClick={() => atualizar((x) => ({ ...x, etapa: 'correndo', fim: undefined }))}>Voltar à corrida</button>
+        }}>Salvar corrida ✅</Botao>
+        <div className="links-rodape">
+          <button className="link" onClick={() => atualizar((x) => ({ ...x, etapa: 'correndo', fim: undefined }))}>Voltar à corrida</button>
+          <button className="link link--perigo" onClick={() => setDescartar(true)}>Descartar corrida</button>
+        </div>
       </div>
       <Confete disparo={confete} />
+      <Folha aberta={descartar} aoFechar={() => setDescartar(false)} titulo="Descartar corrida">
+        <div className="detalhe">
+          <h2 className="detalhe__titulo">Descartar esta corrida?</h2>
+          <p className="detalhe__orientacao">Ela não será salva no histórico. Use se começou sem querer.</p>
+          <Botao grande className="btn--perigo" onClick={() => { gravarCorridaAtiva(null); aoSair(false); }}>Sim, descartar</Botao>
+          <Botao variante="secundario" onClick={() => setDescartar(false)}>Voltar</Botao>
+        </div>
+      </Folha>
+    </div>
+  );
+}
+
+// ------------------------------------------------------------------ contagem
+function Contagem({ t, agora, atualizar, aoSair }: { t: CorridaAtiva; agora: number; atualizar: Atualizar; aoSair: (s: boolean) => void }) {
+  const resta = Math.ceil((t.inicio - agora) / 1000);
+  const ultimo = useRef(-1);
+  useEffect(() => {
+    if (resta === ultimo.current) return;
+    ultimo.current = resta;
+    if (resta <= 3 && resta >= 1) avisar('tique');
+  }, [resta]);
+  const cancelado = useRef(false);
+  // ao sair da contagem para a corrida (não ao cancelar): som + voz
+  useEffect(() => () => { if (!cancelado.current) { avisar('fase'); falar(t.modo === 'livre' ? 'Vamos lá!' : 'Vamos lá! Aquecimento: caminhe leve.'); } }, []); // eslint-disable-line react-hooks/exhaustive-deps
+  return (
+    <div className="corrida corrida--aquecimento">
+      <main className="corrida__centro contagem">
+        <p className="rotulo-sup">{t.titulo}</p>
+        <p className="corrida__fase">Prepare-se</p>
+        <p className="contagem__num num" key={resta}>{Math.max(1, resta)}</p>
+        <p className="corrida__sub">{t.modo === 'livre' ? 'O cronômetro começa em instantes' : `Começa com ${t.fases[0]?.rotulo.toLowerCase() ?? 'aquecimento'}`}</p>
+      </main>
+      <footer className="contagem__acoes">
+        <Botao grande variante="secundario" onClick={() => { cancelado.current = true; gravarCorridaAtiva(null); aoSair(false); }}>Cancelar</Botao>
+        <Botao grande cor="corr" onClick={() => atualizar((x) => comecarAgora(x, Date.now()))}>Começar agora</Botao>
+      </footer>
     </div>
   );
 }

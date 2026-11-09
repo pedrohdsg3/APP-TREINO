@@ -77,8 +77,14 @@ function MenuSair({ aberto, fechar, t, atualizar, aoSair }: PropsEtapa & { abert
   return (
     <Folha aberta={aberto} aoFechar={() => { setConfirmar(false); fechar(); }} titulo="Encerrar treino">
       <div className="detalhe">
-        <h2 className="detalhe__titulo">Encerrar treino?</h2>
-        {!confirmar ? (
+        <h2 className="detalhe__titulo">{algumaFeita ? 'Encerrar treino?' : 'Cancelar treino?'}</h2>
+        {!algumaFeita ? (
+          <>
+            <p className="detalhe__orientacao">Nenhuma série foi feita ainda. Se abriu sem querer, é só cancelar: nada será salvo.</p>
+            <Botao grande className="btn--perigo" onClick={() => { gravarTreinoAtivo(null); aoSair(false); }}>Cancelar treino</Botao>
+            <Botao variante="secundario" onClick={fechar}>Continuar</Botao>
+          </>
+        ) : !confirmar ? (
           <>
             <p className="detalhe__orientacao">O treino fica salvo se você fechar o app; dá para continuar depois.</p>
             {algumaFeita && <Botao grande onClick={() => { fechar(); atualizar((x) => ({ ...x, etapa: 'resumo', fim: Date.now(), descanso: undefined })); }}>Finalizar e ver resumo</Botao>}
@@ -124,7 +130,10 @@ function Aquecimento({ t, atualizar, agora, aoSair }: PropsEtapa & { agora: numb
         <Botao grande onClick={() => atualizar((x) => ({ ...x, etapa: 'exercicio' }))}>
           {feitos === AQUECIMENTO.length ? 'Começar treino 💪' : 'Começar treino'}
         </Botao>
-        {feitos < AQUECIMENTO.length && <button className="link" onClick={() => atualizar((x) => ({ ...x, etapa: 'exercicio' }))}>Pular aquecimento</button>}
+        <div className="links-rodape">
+          {feitos < AQUECIMENTO.length && <button className="link" onClick={() => atualizar((x) => ({ ...x, etapa: 'exercicio' }))}>Pular aquecimento</button>}
+          <button className="link link--perigo" onClick={() => { gravarTreinoAtivo(null); aoSair(false); }}>Cancelar</button>
+        </div>
       </div>
       <MenuSair aberto={menu} fechar={() => setMenu(false)} t={t} atualizar={atualizar} aoSair={aoSair} />
     </div>

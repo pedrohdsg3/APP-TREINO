@@ -1,6 +1,6 @@
 import { describe, expect, it } from 'vitest';
 import { corridaPlanejada, planoDaData, proximaCorrida, type ConfigPrograma } from './plano';
-import { encerrar, estadoFase, fmtPace, informarDor, montarCorrida, pace, pausar, pularFase, resumirCorrida, retomar, tempoAtivo } from './corridaAtiva';
+import { comecarAgora, naContagem, encerrar, estadoFase, fmtPace, informarDor, montarCorrida, pace, pausar, pularFase, resumirCorrida, retomar, tempoAtivo } from './corridaAtiva';
 
 const s = (n: number) => n * 1000;
 const base = () => montarCorrida(corridaPlanejada('base', 1), { sessaoId: 'c', data: '2026-11-10', semana: 1, agora: 0, treinoId: 'base' });
@@ -46,6 +46,13 @@ describe('corrida guiada', () => {
     const t = montarCorrida(null, { sessaoId: 'l', data: 'd', agora: 0, treinoId: 'livre' });
     expect(estadoFase(t, s(9999)).concluida).toBe(false);
     expect(resumirCorrida(encerrar(t, s(1800)), 0).duracaoSeg).toBe(1800);
+  });
+  it('contagem de 5 s antes de começar', () => {
+    const t = montarCorrida(corridaPlanejada('base', 1), { sessaoId: 'c', data: 'd', agora: 0, treinoId: 'base', contagemSeg: 5 });
+    expect(naContagem(t, s(3))).toBe(true);
+    expect(tempoAtivo(t, s(3))).toBe(0);
+    expect(tempoAtivo(t, s(15))).toBe(10);
+    expect(naContagem(comecarAgora(t, s(2)), s(2))).toBe(false);
   });
   it('pace', () => {
     expect(fmtPace(pace(1800, 4))).toBe('7:30 /km');

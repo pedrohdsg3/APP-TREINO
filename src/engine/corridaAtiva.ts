@@ -26,13 +26,18 @@ export interface CorridaAtiva {
   dorDurante?: number;
 }
 
-export function montarCorrida(c: CorridaPlanejada | null, o: { sessaoId: string; data: string; semana?: number; agora: number; treinoId: string }): CorridaAtiva {
+/** contagemSeg: segundos de "prepare-se" antes de o cronômetro começar (início fica no futuro). */
+export function montarCorrida(c: CorridaPlanejada | null, o: { sessaoId: string; data: string; semana?: number; agora: number; treinoId: string; contagemSeg?: number }): CorridaAtiva {
   return {
     versao: 1, sessaoId: o.sessaoId, data: o.data, semana: o.semana, treinoId: o.treinoId,
     modo: c ? 'guiada' : 'livre', titulo: c?.titulo ?? 'Corrida livre', resumo: c?.resumo ?? 'Cronômetro livre',
-    fases: c?.fases ?? [], inicio: o.agora, pausas: [], deslocamento: 0, etapa: 'correndo',
+    fases: c?.fases ?? [], inicio: o.agora + (o.contagemSeg ?? 0) * 1000, pausas: [], deslocamento: 0, etapa: 'correndo',
   };
 }
+
+/** Ainda na contagem regressiva inicial? */
+export const naContagem = (t: CorridaAtiva, agora: number) => agora < t.inicio && t.etapa === 'correndo';
+export const comecarAgora = (t: CorridaAtiva, agora: number): CorridaAtiva => (agora < t.inicio ? { ...t, inicio: agora } : t);
 
 export const pausada = (t: CorridaAtiva) => !!t.pausas.at(-1) && t.pausas.at(-1)!.fim === undefined;
 
