@@ -1,15 +1,44 @@
+import { useState } from 'react';
+import { useLiveQuery } from 'dexie-react-hooks';
+import { db } from '../db';
 import { Anel, Botao, Card, Chip } from '../ui/Componentes';
-import { IcBalanca, IcChama, IcHalter, IcPlay, IcRelogio, IcTenis } from '../ui/Icones';
-import { dataPorExtenso, isoLocal, saudacao } from '../lib/datas';
-import { INICIO_PADRAO, SEMANA_PADRAO, TOTAL_SEMANAS, posicaoNoPrograma } from '../lib/programa';
+import { IcBalanca, IcChama, IcHalter, IcPlay, IcRelogio, IcTenis, IcTrofeu } from '../ui/Icones';
+import { Folha } from '../ui/Folha';
+import { BarraFases, DetalheDia } from '../ui/DetalheDia';
+import { dataPorExtenso, formatarData, isoLocal, saudacao, somarDias, diasEntre } from '../lib/datas';
+import { useConfigPrograma } from '../lib/ajustes';
+import { SEMANAS_PROGRAMA, dataDoDia, diaPlanejado, posicao, formatarDuracao, type DiaPlanejado } from '../engine/plano';
+import { feitosNaSemana, sequencia, ultimaSessao } from '../engine/estatisticas';
 
-export function Hoje({ aoIniciar }: { aoIniciar: () => void }) {
+function quando(data: string, hoje: string) {
+  const d = diasEntre(hoje, data);
+  if (d === 0) return 'hoje';
+  if (d === 1) return 'amanhã';
+  if (d === -1) return 'ontem';
+  return formatarData(data);
+}
+
+export function Hoje({ aoIniciar }: { aoIniciar: (p: DiaPlanejado) => void }) {
+  const cfg = useConfigPrograma();
   const hoje = isoLocal();
-  const pos = posicaoNoPrograma(INICIO_PADRAO, hoje);
-  const diaIdx = (new Date().getDay() + 6) % 7; // 0 = segunda
-  const dia = SEMANA_PADRAO[diaIdx];
-  const prox = SEMANA_PADRAO[(diaIdx + 1) % 7];
-  const cor = dia.tipo === 'musculacao' ? 'musc' : 'corr';
+  const sessoes = useLiveQuery(() => db.sessoes.toArray(), []) ?? [];
+  const peso = useLiveQuery(() => db.corpo.orderBy('data').reverse().filter((r) => r.peso != null).first(), []);
+  const [detalhe, setDetalhe] = useState<{ data: string; plano: DiaPlanejado } | null>(null);
+  if (!cfg) return <div className="tela" />;
+
+  const pos = posicao(cfg, hoje);
+  // Antes do início: mostra o 1º treino. Depois do fim: nada planejado.
+  const dataTreino = pos.estado === 'antes' ? cfg.inicio : hoje;
+  const posTreino = posicao(cfg, dataTreino);
+  const plano = posTreino.estado === 'durante' ? diaPlanejado(posTreino.semana, posTreino.dia) : null;
+  const proxPos = posicao(cfg, somarDias(dataTreino, 1));
+  const prox = proxPos.estado === 'durante' ? diaPlanejado(proxPos.semana, proxPos.dia) : null;
+  const inicioSemana = pos.estado === 'durante' ? dataDoDia(cfg, pos.semanaCal, 0) : cfg.inicio;
+  const feitos = feitosNaSemana(sessoes, inicioSemana);
+  const seq = sequencia(sessoes, hoje);
+  const ultima = ultimaSessao(sessoes, hoje);
+  const jaFeitoHoje = sessoes.some((s) => s.data === hoje && s.status === 'feito');
+  const cor = plano?.tipoPrincipal === 'corrida' ? 'corr' : 'musc';
 
   return (
     <div className="tela">
@@ -17,43 +46,70 @@ export function Hoje({ aoIniciar }: { aoIniciar: () => void }) {
         <p className="cabecalho__data">{dataPorExtenso(hoje)}</p>
         <h1>{saudacao()}, Pedro <span className="emoji">👋</span></h1>
         {pos.estado === 'durante' && (
-          <p className="cabecalho__sub">Semana {pos.semana} de {TOTAL_SEMANAS} · Fase {pos.fase}</p>
+          <p className="cabecalho__sub">Semana {pos.semana} de {SEMANAS_PROGRAMA} · Fase {pos.fase}{pos.repetida ? ' · repetição' : ''}</p>
         )}
-        {pos.estado === 'antes' && <p className="cabecalho__sub">O programa começa em {pos.diasParaComecar} dia(s)</p>}
+        {pos.estado === 'antes' && <p className="cabecalho__sub">O programa começa em {pos.diasParaComecar === 1 ? '1 dia' : `${pos.diasParaComecar} dias`} ({formatarData(cfg.inicio)})</p>}
         {pos.estado === 'depois' && <p className="cabecalho__sub">Programa de 12 semanas concluído 🏆</p>}
       </header>
 
-      <Card destaque={cor} className="treino-dia entra">
-        <div className="treino-dia__topo">
-          <Chip cor={cor}>{dia.tipo === 'musculacao' ? <><IcHalter tamanho={16} /> Musculação</> : <><IcTenis tamanho={16} /> Corrida</>}</Chip>
-          <span className="treino-dia__dur"><IcRelogio tamanho={16} /> ~{dia.minutos} min</span>
-        </div>
-        <h2 className="treino-dia__titulo">{dia.titulo}</h2>
-        <p className="treino-dia__detalhe">{dia.detalhe}</p>
-        <Botao grande cor={cor} icone={<IcPlay tamanho={20} />} onClick={aoIniciar}>Iniciar treino</Botao>
-      </Card>
+      {plano ? (
+        <Card destaque={cor} className="treino-dia entra">
+          <div className="treino-dia__topo">
+            <Chip cor={cor}>{cor === 'musc' ? <><IcHalter tamanho={16} /> Musculação</> : <><IcTenis tamanho={16} /> Corrida</>}</Chip>
+            <span className="treino-dia__dur"><IcRelogio tamanho={16} /> ~{plano.minutos} min</span>
+          </div>
+          {pos.estado === 'antes' && <p className="sutil">Primeiro treino · {dataPorExtenso(cfg.inicio)}</p>}
+          <h2 className="treino-dia__titulo">{plano.titulo}</h2>
+          <div className="tags">
+            {plano.grupos.map((g) => <span key={g} className="tag">{g}</span>)}
+          </div>
+          {plano.corrida && <BarraFases corrida={plano.corrida} />}
+          {plano.recuperacao && <p className="nota-recup">🌿 Semana de recuperação: menos volume, carga ~10% menor.</p>}
+          {jaFeitoHoje
+            ? <Botao grande variante="secundario" onClick={() => setDetalhe({ data: dataTreino, plano })}>Treino de hoje concluído ✅</Botao>
+            : <Botao grande cor={cor} icone={<IcPlay tamanho={20} />} onClick={() => aoIniciar(plano)}>Iniciar treino</Botao>}
+          <button className="link" onClick={() => setDetalhe({ data: dataTreino, plano })}>Ver treino completo</button>
+        </Card>
+      ) : (
+        <Card className="entra concluido">
+          <IcTrofeu tamanho={40} />
+          <h2>Você completou as 12 semanas!</h2>
+          <p className="sutil">Confira sua evolução e, se quiser, reinicie o programa em Perfil.</p>
+        </Card>
+      )}
 
-      <Card className="meta entra" >
-        <Anel progresso={0} tamanho={72} espessura={7}><strong>0/7</strong></Anel>
-        <div className="meta__texto">
-          <h3>Meta da semana</h3>
-          <p>0 de 7 treinos concluídos</p>
-          <p className="meta__streak"><IcChama tamanho={16} /> Sequência: 0 dias</p>
-        </div>
-      </Card>
+      {pos.estado === 'durante' && (
+        <Card className="meta entra">
+          <Anel progresso={feitos / 7} tamanho={72} espessura={7}><strong>{feitos}/7</strong></Anel>
+          <div className="meta__texto">
+            <h3>Meta da semana</h3>
+            <p>{feitos} de 7 treinos concluídos</p>
+            <p className="meta__streak"><IcChama tamanho={16} /> Sequência: {seq} {seq === 1 ? 'dia' : 'dias'}</p>
+          </div>
+        </Card>
+      )}
 
       <div className="grade-mini entra">
         <Card className="mini">
-          <span className="mini__rotulo">Próximo</span>
-          <strong>{prox.titulo}</strong>
-          <span className="mini__sub">amanhã</span>
+          <span className="mini__rotulo">Último</span>
+          <strong>{ultima ? (ultima.tipo === 'corrida' ? 'Corrida' : 'Musculação') : '—'}</strong>
+          <span className="mini__sub">{ultima ? `${quando(ultima.data, hoje)}${ultima.duracaoSeg ? ` · ${formatarDuracao(ultima.duracaoSeg)}` : ''}` : 'nenhum treino ainda'}</span>
         </Card>
         <Card className="mini">
-          <span className="mini__rotulo"><IcBalanca tamanho={14} /> Peso</span>
-          <strong>—</strong>
-          <span className="mini__sub">registre em Evolução</span>
+          <span className="mini__rotulo">Próximo</span>
+          <strong>{prox ? prox.titulo : '—'}</strong>
+          <span className="mini__sub">{prox ? quando(somarDias(dataTreino, 1), hoje) : 'fim do programa'}</span>
+        </Card>
+        <Card className="mini mini--largo">
+          <span className="mini__rotulo"><IcBalanca tamanho={14} /> Peso corporal</span>
+          <strong>{peso?.peso != null ? `${peso.peso.toLocaleString('pt-BR')} kg` : '—'}</strong>
+          <span className="mini__sub">{peso ? `em ${formatarData(peso.data)}` : 'o registro rápido chega na etapa 5'}</span>
         </Card>
       </div>
+
+      <Folha aberta={!!detalhe} aoFechar={() => setDetalhe(null)} titulo="Treino do dia">
+        {detalhe && <DetalheDia data={detalhe.data} plano={detalhe.plano} />}
+      </Folha>
     </div>
   );
 }

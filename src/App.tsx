@@ -31,7 +31,7 @@ export function App() {
     <div className="app">
       <main ref={principal} className="principal">
         <div key={aba} className={`transicao transicao--${direcao}`}>
-          {aba === 'hoje' && <Hoje aoIniciar={() => setAviso('O treino guiado chega nas etapas 3 e 4 💪')} />}
+          {aba === 'hoje' && <Hoje aoIniciar={(p) => setAviso(p.tipoPrincipal === 'corrida' ? 'O modo corrida guiado chega na etapa 4 🏃' : 'O modo musculação guiado chega na etapa 3 💪')} />}
           {aba === 'programa' && <Programa />}
           {aba === 'evolucao' && <Evolucao />}
           {aba === 'perfil' && <Perfil />}
