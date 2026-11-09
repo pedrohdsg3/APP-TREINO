@@ -3,6 +3,7 @@ import { EXERCICIOS, DESCANSO_PADRAO, type ItemTreino, type TreinoMusculacaoId, 
 import { CORRIDA_BASE, CORRIDA_INTERVALADA, CORRIDA_LEVE, AQUECIMENTO_SEG, DESAQUECIMENTO_SEG, type Fase } from '../data/corrida';
 import { PLANO_PEDRO, minutosCardio, type DefinicaoPlano, type DiaModelo, type NomeFase, type TipoCorrida } from '../data/planos';
 import { diasEntre, somarDias } from '../lib/datas';
+import { lerPrefs } from '../lib/prefs';
 
 export type { DiaModelo, NomeFase, TipoCorrida, DefinicaoPlano };
 
@@ -35,6 +36,32 @@ export interface ConfigPrograma {
   recuoCorrida?: number;
   /** datas em que a corrida foi trocada por cardio sem impacto */
   cardioAlternativo?: string[];
+  /** ajustes de dias específicos (treino perdido feito depois / reagendado / corrida adiada) */
+  trocas?: Record<string, TrocaDia>;
+  /** treinos perdidos já resolvidos (data → como) */
+  resolvidos?: Record<string, 'reagendado' | 'retorno' | 'ignorado'>;
+  /** semana de retorno após 3+ dias parado: carga/volume da semana anterior, −1 série nos compostos */
+  retorno?: { de: string; ate: string };
+  /** personalização dos treinos (trocar, remover, adicionar exercícios) */
+  personalizacao?: Record<string, PersonalizacaoTreino>;
+  /** carga inicial por exercício (usada quando ainda não há histórico) */
+  cargasIniciais?: Record<string, number>;
+}
+
+export interface TrocaDia {
+  /** treino de musculação feito neste dia no lugar do planejado (ou além de uma corrida) */
+  musculacao?: { treinoId: string; semana: number; origem: string };
+  /** a corrida planejada deste dia foi adiada/pulada */
+  semCorrida?: boolean;
+  /** corrida adiada de outro dia */
+  corridaExtra?: { tipo: TipoCorrida; semana: number; origem: string };
+}
+
+export interface PersonalizacaoTreino {
+  remover?: string[];
+  /** exercícioId original → substituto */
+  trocar?: Record<string, string>;
+  adicionar?: { exercicioId: string; series: number; reps: number }[];
 }
 
 export const totalSemanasCalendario = (c: ConfigPrograma) => SEMANAS_PROGRAMA + c.repetidas.length;
@@ -149,17 +176,42 @@ export function corridaPlanejada(tipo: TipoCorrida, semana: number): CorridaPlan
   return { tipo, titulo: TITULO_CORRIDA[tipo], resumo: t.resumo, esforco: ESFORCO_CORRIDA[tipo], fases, utilSeg, totalSeg: utilSeg + AQUECIMENTO_SEG + DESAQUECIMENTO_SEG };
 }
 
-export function musculacaoPlanejada(id: TreinoMusculacaoId, semana: number): MusculacaoPlanejada {
+export interface OpcoesMusculacao { personalizacao?: PersonalizacaoTreino; retorno?: boolean }
+
+/** Aplica remoções, trocas e adições do usuário à lista do plano. */
+export function personalizar(itens: ItemTreino[], p?: PersonalizacaoTreino): ItemTreino[] {
+  if (!p) return itens;
+  const out = itens
+    .filter((it) => !p.remover?.includes(it.exercicioId))
+    .map((it) => {
+      const novo = p.trocar?.[it.exercicioId];
+      return novo && EXERCICIOS[novo] ? { ...it, exercicioId: novo } : it;
+    });
+  for (const a of p.adicionar ?? []) {
+    if (!EXERCICIOS[a.exercicioId] || out.some((x) => x.exercicioId === a.exercicioId)) continue;
+    out.push({ exercicioId: a.exercicioId, series: a.series, reps: a.reps, repsMin: EXERCICIOS[a.exercicioId].medida === 'reps' ? Math.max(1, a.reps - 2) : undefined });
+  }
+  return out;
+}
+
+export function musculacaoPlanejada(id: TreinoMusculacaoId, semana: number, op: OpcoesMusculacao = {}): MusculacaoPlanejada {
   const t = ativo.treinos[id];
-  const rec = ehRecuperacao(semana);
+  // semana de retorno: usa a semana anterior do plano e tira 1 série dos compostos
+  const semanaBase = op.retorno ? Math.max(1, semana - 1) : semana;
+  const rec = ehRecuperacao(semanaBase);
   const tirar = rec && ativo.menosUmaSerieNaRecuperacao;
-  const itens: ItemPlanejado[] = t.itens(semana).map((it) => {
+  const prefs = lerPrefs();
+  const itens: ItemPlanejado[] = personalizar(t.itens(semanaBase), op.personalizacao).map((it) => {
     const ex = EXERCICIOS[it.exercicioId];
+    let series = tirar ? Math.max(1, it.series - 1) : it.series;
+    if (op.retorno && ex.tipo === 'composto') series = Math.max(1, series - 1);
+    const base = it.descanso ?? DESCANSO_PADRAO[ex.tipo];
+    const preferido = prefs.descansoPadrao?.[ex.tipo];
     return {
       ...it,
-      series: tirar ? Math.max(1, it.series - 1) : it.series,
-      descanso: it.descanso ?? DESCANSO_PADRAO[ex.tipo],
-      cargaPct: rec ? 90 : 100,
+      series,
+      descanso: preferido && base === DESCANSO_PADRAO[ex.tipo] ? preferido : base,
+      cargaPct: rec || op.retorno ? 90 : 100,
     };
   });
   const grupos = [...new Set(itens.map((it) => EXERCICIOS[it.exercicioId].grupo))];
@@ -168,15 +220,27 @@ export function musculacaoPlanejada(id: TreinoMusculacaoId, semana: number): Mus
   return { id, titulo: t.titulo, itens, grupos, minutos: Math.round(seg / 60) };
 }
 
-export interface OpcoesDia { recuoCorrida?: number; cardioAlternativo?: boolean }
+export interface OpcoesDia {
+  recuoCorrida?: number;
+  cardioAlternativo?: boolean;
+  troca?: TrocaDia;
+  retorno?: boolean;
+  personalizacao?: Record<string, PersonalizacaoTreino>;
+}
 
 export function diaPlanejado(semana: number, dia: number, op: OpcoesDia = {}): DiaPlanejado {
   const modelo = ativo.semana[dia];
-  const musculacao = modelo.musculacao ? musculacaoPlanejada(modelo.musculacao, semana) : undefined;
-  const semCorr = Math.max(1, semana - (op.recuoCorrida ?? 0));
-  let corrida = !modelo.corrida ? undefined : op.cardioAlternativo ? cardioAlternativo() : corridaPlanejada(modelo.corrida, semCorr);
+  const opM = (id: string): OpcoesMusculacao => ({ personalizacao: op.personalizacao?.[id], retorno: op.retorno });
+  const tr = op.troca;
+  // treino perdido feito/reagendado para este dia substitui a musculação do dia
+  const musculacao = tr?.musculacao ? musculacaoPlanejada(tr.musculacao.treinoId, tr.musculacao.semana, opM(tr.musculacao.treinoId))
+    : modelo.musculacao ? musculacaoPlanejada(modelo.musculacao, semana, opM(modelo.musculacao)) : undefined;
+  const semCorr = Math.max(1, semana - (op.recuoCorrida ?? 0) - (op.retorno ? 1 : 0));
+  let corrida = tr?.corridaExtra ? corridaPlanejada(tr.corridaExtra.tipo, Math.max(1, tr.corridaExtra.semana - (op.recuoCorrida ?? 0)))
+    : !modelo.corrida || tr?.semCorrida ? undefined
+    : op.cardioAlternativo ? cardioAlternativo() : corridaPlanejada(modelo.corrida, semCorr);
   const fase = faseDaSemana(semana);
-  const descanso = !!modelo.descanso;
+  const descanso = !!modelo.descanso && !tr?.musculacao && !tr?.corridaExtra;
   // dia de descanso: o "treino" é o cardio leve opcional
   let cardio = modelo.cardio ? cardioLeve(semana) : undefined;
   if (descanso && cardio) { corrida = cardio; cardio = undefined; }
@@ -192,7 +256,10 @@ export function diaPlanejado(semana: number, dia: number, op: OpcoesDia = {}): D
 export function planoDaData(c: ConfigPrograma, data: string): DiaPlanejado | null {
   const p = posicao(c, data);
   if (p.estado !== 'durante') return null;
-  return diaPlanejado(p.semana, p.dia, { recuoCorrida: c.recuoCorrida, cardioAlternativo: c.cardioAlternativo?.includes(data) });
+  return diaPlanejado(p.semana, p.dia, {
+    recuoCorrida: c.recuoCorrida, cardioAlternativo: c.cardioAlternativo?.includes(data), troca: c.trocas?.[data],
+    retorno: !!c.retorno && data >= c.retorno.de && data <= c.retorno.ate, personalizacao: c.personalizacao,
+  });
 }
 
 /** Próxima data (a partir de `apos`, exclusive) com corrida planejada. */

@@ -5,6 +5,8 @@ export interface Prefs {
   voz: boolean;
   /** descanso por exercício (segundos), sobrescreve o plano */
   descansos: Record<string, number>;
+  /** descanso padrão (s) por tipo de exercício; vazio = plano (90 compostos / 60 isoladores) */
+  descansoPadrao?: { composto?: number; isolador?: number };
 }
 const CHAVE = 'treino.prefs';
 const PADRAO: Prefs = { som: true, vibracao: true, voz: true, descansos: {} };

@@ -1,11 +1,12 @@
-import { IcEvolucao, IcHoje, IcPerfil, IcPrograma } from './Icones';
+import { IcDuelo, IcEvolucao, IcHoje, IcPerfil, IcPrograma } from './Icones';
 
-export type Aba = 'hoje' | 'programa' | 'evolucao' | 'perfil';
-export const ORDEM_ABAS: Aba[] = ['hoje', 'programa', 'evolucao', 'perfil'];
+export type Aba = 'hoje' | 'programa' | 'duelo' | 'evolucao' | 'perfil';
+export const ORDEM_ABAS: Aba[] = ['hoje', 'programa', 'duelo', 'evolucao', 'perfil'];
 
 const ITENS: { aba: Aba; rotulo: string; Icone: typeof IcHoje }[] = [
   { aba: 'hoje', rotulo: 'Hoje', Icone: IcHoje },
   { aba: 'programa', rotulo: 'Programa', Icone: IcPrograma },
+  { aba: 'duelo', rotulo: 'Duelo', Icone: IcDuelo },
   { aba: 'evolucao', rotulo: 'Evolução', Icone: IcEvolucao },
   { aba: 'perfil', rotulo: 'Perfil', Icone: IcPerfil },
 ];

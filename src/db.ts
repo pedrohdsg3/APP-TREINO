@@ -65,7 +65,7 @@ export type Banco = Dexie & {
   ajustes: EntityTable<Ajuste, 'chave'>;
 };
 
-function criarBanco(nome: string): Banco {
+export function criarBanco(nome: string): Banco {
   const b = new Dexie(nome) as Banco;
   b.version(1).stores({
     sessoes: 'id, data, tipo, status',
@@ -91,6 +91,13 @@ export function abrirBanco(nome: string) {
   if (db.name === nome) return;
   db.close();
   db = criarBanco(nome);
+}
+
+/** Usa o banco ativo se for o mesmo; senão abre uma instância temporária (outro perfil). */
+export async function comBanco<T>(nome: string, f: (b: Banco) => Promise<T>): Promise<T> {
+  if (db.name === nome) return f(db);
+  const b = criarBanco(nome);
+  try { return await f(b); } finally { b.close(); }
 }
 
 export async function apagarBanco(nome: string) {

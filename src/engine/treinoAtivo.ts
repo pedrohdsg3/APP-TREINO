@@ -49,23 +49,24 @@ export const AQUECIMENTO = [
   '1–2 séries leves do 1º exercício (~50% da carga)',
 ];
 
-function montarEx(item: ItemPlanejado, planejado: string, h: HistoricoEx | undefined): ExAtivo {
+function montarEx(item: ItemPlanejado, planejado: string, h: HistoricoEx | undefined, cargaInicial?: number): ExAtivo {
   const ex = EXERCICIOS[item.exercicioId];
   const sug = sugerir(item, h?.ultima?.series, item.cargaPct);
   const series: SerieAtiva[] = Array.from({ length: item.series }, (_, i) => {
     const ant = h?.ultima?.series[i] ?? h?.ultima?.series.at(-1);
-    const carga = ex.semCarga ? (ant?.carga ?? 0) : (sug?.carga ?? ant?.carga ?? 0);
+    const inicial = cargaInicial ? Math.round(cargaInicial * (item.cargaPct ?? 100) / 100 * 2) / 2 : 0;
+    const carga = ex.semCarga ? (ant?.carga ?? 0) : (sug?.carga ?? ant?.carga ?? inicial);
     const reps = ex.medida === 'falha' ? (ant?.reps ?? 10) : (sug?.reps ?? item.reps);
     return { carga, reps, feita: false };
   });
   return { item, planejado, series, anterior: h?.ultima?.series, anteriorData: h?.ultima?.data, historico: h?.todas ?? [], sugestao: sug, dores: [] };
 }
 
-export function montarTreino(p: MusculacaoPlanejada, o: { sessaoId: string; data: string; semana: number; agora: number; historico: Record<string, HistoricoEx> }): TreinoAtivo {
+export function montarTreino(p: MusculacaoPlanejada, o: { sessaoId: string; data: string; semana: number; agora: number; historico: Record<string, HistoricoEx>; cargasIniciais?: Record<string, number> }): TreinoAtivo {
   return {
     versao: 1, sessaoId: o.sessaoId, data: o.data, semana: o.semana, treinoId: p.id, titulo: p.titulo,
     inicio: o.agora, etapa: p.id === 'abdomen' ? 'exercicio' : 'aquecimento', aquecimento: AQUECIMENTO.map(() => false),
-    exercicios: p.itens.map((it) => montarEx(it, it.exercicioId, o.historico[it.exercicioId])),
+    exercicios: p.itens.map((it) => montarEx(it, it.exercicioId, o.historico[it.exercicioId], o.cargasIniciais?.[it.exercicioId])),
     atual: 0, prs: [],
   };
 }

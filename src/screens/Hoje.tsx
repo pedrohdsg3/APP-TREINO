@@ -4,6 +4,8 @@ import { db } from '../db';
 import { Anel, Botao, Card, Chip } from '../ui/Componentes';
 import { IcBalanca, IcChama, IcHalter, IcPlay, IcRelogio, IcTenis, IcTrofeu } from '../ui/Icones';
 import { Folha } from '../ui/Folha';
+import { AvatarPerfil } from '../ui/Personagem';
+import { CardTreinoPerdido } from '../ui/CardTreinoPerdido';
 import { BarraFases, DetalheDia } from '../ui/DetalheDia';
 import { dataPorExtenso, formatarData, isoLocal, saudacao, somarDias, diasEntre } from '../lib/datas';
 import { useConfigPrograma } from '../lib/ajustes';
@@ -57,7 +59,7 @@ export function Hoje({ aoIniciar, aoCorridaLivre, aoTrocarPerfil }: { aoIniciar:
         <div className="cabecalho__linha">
           <h1>{saudacao()}, {perfil.nome} <span className="emoji">👋</span></h1>
           <button className="avatar" onClick={aoTrocarPerfil} aria-label={`Perfil de ${perfil.nome}. Trocar perfil`}>
-            <span aria-hidden="true">{perfil.emoji}</span>
+            <AvatarPerfil personagem={perfil.personagem} emoji={perfil.emoji} tamanho={52} />
             {listarPerfis().length > 1 && <small aria-hidden="true">⇄</small>}
           </button>
         </div>
@@ -67,6 +69,8 @@ export function Hoje({ aoIniciar, aoCorridaLivre, aoTrocarPerfil }: { aoIniciar:
         {pos.estado === 'antes' && <p className="cabecalho__sub">O programa começa em {pos.diasParaComecar === 1 ? '1 dia' : `${pos.diasParaComecar} dias`} ({formatarData(cfg.inicio)})</p>}
         {pos.estado === 'depois' && <p className="cabecalho__sub">Programa de 12 semanas concluído 🏆</p>}
       </header>
+
+      {pos.estado === 'durante' && <CardTreinoPerdido cfg={cfg} sessoes={sessoes} hoje={hoje} />}
 
       {plano ? (
         <Card destaque={cor} className="treino-dia entra">

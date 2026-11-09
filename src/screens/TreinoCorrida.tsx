@@ -15,6 +15,8 @@ import { Botao } from '../ui/Componentes';
 import { Folha } from '../ui/Folha';
 import { Escala, textoDor, textoEsforco } from '../ui/Escala';
 import { Confete } from '../ui/Confete';
+import { Personagem, Saudacao } from '../ui/Personagem';
+import { perfilAtual } from '../lib/perfis';
 
 type Atualizar = (f: (x: CorridaAtiva) => CorridaAtiva) => void;
 
@@ -208,7 +210,7 @@ function Registro({ t, atualizar, aoSair, aoDor }: {
     <div className="guiado">
       <div className="guiado__corpo resumo entra">
         <div className="resumo__hero">
-          <div className="resumo__trofeu resumo__trofeu--corr">{t.treinoId === 'cardio-leve' ? '🚶' : '🏃'}</div>
+          {perfilAtual().personagem ? <Personagem quem={perfilAtual().personagem!} acao="comemora" tamanho={120} className="resumo__personagem" /> : <div className="resumo__trofeu resumo__trofeu--corr">{t.treinoId === 'cardio-leve' ? '🚶' : '🏃'}</div>}
           <h1 className="guiado__h1">{t.treinoId === 'cardio-leve' ? 'Cardio concluído!' : 'Corrida concluída!'}</h1>
           <p className="sutil">{t.titulo} · {t.resumo}</p>
         </div>
@@ -285,6 +287,7 @@ function Contagem({ t, agora, atualizar, aoSair }: { t: CorridaAtiva; agora: num
   return (
     <div className="corrida corrida--aquecimento">
       <main className="corrida__centro contagem">
+        <Saudacao acao="corrida" frase={`Bora, ${perfilAtual().nome}!`} />
         <p className="rotulo-sup">{t.titulo}</p>
         <p className="corrida__fase">Prepare-se</p>
         <p className="contagem__num num" key={resta}>{Math.max(1, resta)}</p>

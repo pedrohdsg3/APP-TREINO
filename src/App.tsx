@@ -3,6 +3,7 @@ import { useRegisterSW } from 'virtual:pwa-register/react';
 import { NavInferior, ORDEM_ABAS, type Aba } from './ui/NavInferior';
 import { Hoje, type ModoInicio } from './screens/Hoje';
 import { Programa } from './screens/Programa';
+import { Duelo } from './screens/Duelo';
 import { Evolucao } from './screens/Evolucao';
 import { Perfil } from './screens/Perfil';
 import { Botao } from './ui/Componentes';
@@ -10,6 +11,7 @@ import { TreinoMusculacao } from './screens/TreinoMusculacao';
 import { lerTreinoAtivo, montarTreino, type TreinoAtivo } from './engine/treinoAtivo';
 import { historicoDe, novoId } from './lib/historico';
 import { isoLocal } from './lib/datas';
+import { lerConfigPrograma } from './lib/ajustes';
 import type { MusculacaoPlanejada, DiaPlanejado } from './engine/plano';
 import { TreinoCorrida } from './screens/TreinoCorrida';
 import { lerCorridaAtiva, montarCorrida, type CorridaAtiva } from './engine/corridaAtiva';
@@ -41,8 +43,8 @@ function AppDoPerfil({ aoTrocarPerfil }: { aoTrocarPerfil: () => void }) {
   const [corrida, setCorrida] = useState<CorridaAtiva | null>(lerCorridaAtiva);
 
   async function iniciarMusculacao(m: MusculacaoPlanejada, semana: number) {
-    const historico = await historicoDe(m.itens.map((i) => i.exercicioId));
-    setTreino(montarTreino(m, { sessaoId: novoId(), data: isoLocal(), semana, agora: Date.now(), historico }));
+    const [historico, cfg] = await Promise.all([historicoDe(m.itens.map((i) => i.exercicioId)), lerConfigPrograma()]);
+    setTreino(montarTreino(m, { sessaoId: novoId(), data: isoLocal(), semana, agora: Date.now(), historico, cargasIniciais: cfg.cargasIniciais }));
   }
 
   function iniciar(p: DiaPlanejado, modo: ModoInicio) {
@@ -87,6 +89,7 @@ function AppDoPerfil({ aoTrocarPerfil }: { aoTrocarPerfil: () => void }) {
         <div key={aba} className={`transicao transicao--${direcao}`}>
           {aba === 'hoje' && <Hoje aoIniciar={iniciar} aoCorridaLivre={corridaLivre} aoTrocarPerfil={aoTrocarPerfil} />}
           {aba === 'programa' && <Programa />}
+          {aba === 'duelo' && <Duelo />}
           {aba === 'evolucao' && <Evolucao />}
           {aba === 'perfil' && <Perfil aoTrocarPerfil={aoTrocarPerfil} />}
         </div>

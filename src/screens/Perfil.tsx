@@ -1,11 +1,13 @@
 import { Card, Segmentado } from '../ui/Componentes';
-import { IcAuto, IcEscudo, IcLua, IcSol } from '../ui/Icones';
+import { IcAuto, IcLua, IcSol } from '../ui/Icones';
 import { useTema, type Tema } from '../lib/tema';
 import { useState } from 'react';
 import { atualizarPerfil, EMOJIS_PERFIL, excluirPerfil, listarPerfis, perfilAtual } from '../lib/perfis';
 import { PLANOS } from '../data/planos';
 import { Botao } from '../ui/Componentes';
 import { Folha } from '../ui/Folha';
+import { AvatarPerfil } from '../ui/Personagem';
+import { SecaoAvisos, SecaoBackup, SecaoDescanso, SecaoInstalar, SecaoPrograma, SecaoTreinos } from './Configuracoes';
 
 export function Perfil({ aoTrocarPerfil }: { aoTrocarPerfil: () => void }) {
   const [tema, setTema] = useTema();
@@ -19,11 +21,11 @@ export function Perfil({ aoTrocarPerfil }: { aoTrocarPerfil: () => void }) {
     <div className="tela">
       <header className="cabecalho">
         <h1>Perfil</h1>
-        <p className="cabecalho__sub">Preferências e backup</p>
+        <p className="cabecalho__sub">Configurações, backup e instalação</p>
       </header>
 
       <Card className="perfil-card entra">
-        <span className="jogador__avatar" aria-hidden="true">{perfil.emoji}</span>
+        <span className="jogador__avatar jogador__avatar--personagem" aria-hidden="true"><AvatarPerfil personagem={perfil.personagem} emoji={perfil.emoji} tamanho={64} /></span>
         <div className="jogador__info">
           <strong>{perfil.nome}</strong>
           <span>{PLANOS[perfil.plano]?.nome}</span>
@@ -71,13 +73,12 @@ export function Perfil({ aoTrocarPerfil }: { aoTrocarPerfil: () => void }) {
         ]} />
       </Card>
 
-      <Card className="aviso-backup entra">
-        <span className="aviso-backup__icone"><IcEscudo /></span>
-        <div>
-          <h3>Os dados ficam só neste aparelho</h3>
-          <p>Exportar e importar backup (JSON) chega na etapa 6. Faça backups com frequência.</p>
-        </div>
-      </Card>
+      <SecaoBackup />
+      <SecaoAvisos />
+      <SecaoDescanso />
+      <SecaoTreinos />
+      <SecaoPrograma aoTrocarPerfil={aoTrocarPerfil} />
+      <SecaoInstalar />
 
       <p className="rodape">Treino · versão {__VERSAO__}</p>
     </div>

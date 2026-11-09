@@ -17,9 +17,20 @@ npm test
 Cada push na branch `main` publica no GitHub Pages (`.github/workflows/deploy.yml`).
 No repositório: Settings → Pages → Source = **GitHub Actions**.
 
+## Funcionalidades
+
+- Perfis ("Quem vai treinar?") com personagens ilustrados do Pedro e da Yana; cada perfil tem plano e banco próprios
+- Planos de 12 semanas em `src/data/planos.ts` (Pedro e "Inferiores em foco"), musculação guiada, corrida guiada, cardio leve
+- Evolução (gráficos), metas, conquistas, duelo de presença entre perfis
+- Treino perdido com recomendação automática, configurações, backup/importação em JSON
+
+Página de conferência dos personagens: abra o app com `?galeria`.
+
 ## Estrutura
 
-- `src/lib/` — datas, programa (semanas/fases), tema
+- `src/data/` — catálogo de exercícios, planos e tabelas de corrida (edite aqui)
+- `src/engine/` — regras puras e testadas (plano, progressão, PR, treino perdido, duelo…)
+- `src/lib/` — datas, perfis, backup, alertas, tema
 - `src/db.ts` — banco local (Dexie/IndexedDB)
 - `src/ui/` — design system: componentes, ícones e ilustrações SVG
 - `src/screens/` — telas (Hoje, Programa, Evolução, Perfil)

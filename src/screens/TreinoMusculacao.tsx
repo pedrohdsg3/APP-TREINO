@@ -1,7 +1,7 @@
 // Modo Musculação: aquecimento → exercício a exercício (séries, carga, descanso) → resumo.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { EXERCICIOS } from '../data/musculacao';
-import { prescricao } from '../engine/plano';
+import { faseDaSemana, prescricao } from '../engine/plano';
 import { fmtKg, passoCarga } from '../engine/progressao';
 import {
   AQUECIMENTO, adicionarSerie, ajustarDescanso, ajustarSerie, alternativas, concluirSerie, desfazerSerie,
@@ -19,6 +19,8 @@ import { Stepper } from '../ui/Stepper';
 import { Confete } from '../ui/Confete';
 import { IcHalter, IcTrofeu } from '../ui/Icones';
 import { Escala } from '../ui/Escala';
+import { Personagem, Saudacao } from '../ui/Personagem';
+import { perfilAtual } from '../lib/perfis';
 import type { Sessao } from '../db';
 
 const DORES = ['Joelho', 'Ombro', 'Cotovelo', 'Punho', 'Lombar', 'Quadril', 'Outro'];
@@ -111,6 +113,7 @@ function Aquecimento({ t, atualizar, agora, aoSair }: PropsEtapa & { agora: numb
     <div className="guiado">
       <Topo t={t} agora={agora} aoMenu={() => setMenu(true)} />
       <div className="guiado__corpo entra">
+        <Saudacao acao="halter" frase={`Bora, ${perfilAtual().nome}! 💪`} />
         <p className="rotulo-sup">Antes de começar</p>
         <h1 className="guiado__h1">Aquecimento · 5 min 🔥</h1>
         <p className="sutil">Prepara articulações e músculos e reduz o risco de lesão.</p>
@@ -436,7 +439,7 @@ function ResumoTreino({ t, atualizar, aoSair }: PropsEtapa) {
     <div className="guiado">
       <div className="guiado__corpo resumo entra">
         <div className="resumo__hero">
-          <div className="resumo__trofeu"><IcTrofeu tamanho={44} /></div>
+          {perfilAtual().personagem ? <Personagem quem={perfilAtual().personagem!} acao="comemora" tamanho={120} className="resumo__personagem" /> : <div className="resumo__trofeu"><IcTrofeu tamanho={44} /></div>}
           <h1 className="guiado__h1">{completo ? 'Treino concluído!' : 'Treino parcial registrado'}</h1>
           <p className="sutil">{t.titulo} · {formatarData(t.data)}</p>
         </div>
@@ -466,7 +469,7 @@ function ResumoTreino({ t, atualizar, aoSair }: PropsEtapa) {
         <div className="campo">
           <span>Percepção de esforço (1–10)</span>
           <Escala de={1} ate={10} valor={esforco} onChange={setEsforco} rotulo="Percepção de esforço" />
-          <small className="sutil">{esforco ? (esforco <= 4 ? 'Leve' : esforco <= 6 ? 'Moderado' : esforco <= 8 ? 'Forte' : 'Máximo') : 'Fase Base: o ideal é 7–8.'}</small>
+          <small className="sutil">{esforco ? (esforco <= 4 ? 'Leve' : esforco <= 6 ? 'Moderado' : esforco <= 8 ? 'Forte' : 'Máximo') : `Fase ${faseDaSemana(t.semana)}: o ideal é ${({ 'Adaptação': '~6', Base: '7–8', 'Progressão': '8–9', 'Construção': '7–8', 'Intensificação': '8–9', 'Recuperação': '6–7' } as Record<string, string>)[faseDaSemana(t.semana)] ?? '7–8'}.`}</small>
         </div>
         <label className="campo">
           <span>Nota livre</span>

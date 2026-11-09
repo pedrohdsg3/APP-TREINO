@@ -5,6 +5,8 @@ import { ativarPerfil, EMOJIS_PERFIL, listarPerfis, novoPerfil, type Perfil } fr
 import { salvarConfigPrograma } from '../lib/ajustes';
 import { dataPorExtenso, deIso, formatarData, isoLocal, somarDias } from '../lib/datas';
 import { Botao } from '../ui/Componentes';
+import { AvatarPerfil } from '../ui/Personagem';
+
 
 /** Hoje, se for segunda; senão a próxima segunda. */
 export function proximaSegunda(hoje = isoLocal()): string {
@@ -24,7 +26,7 @@ export function EscolherPerfil({ aoEscolher }: { aoEscolher: (p: Perfil) => void
         <div className="escolher__lista">
           {perfis.map((p) => (
             <button key={p.id} className="jogador" onClick={() => aoEscolher(p)}>
-              <span className="jogador__avatar" aria-hidden="true">{p.emoji}</span>
+              <span className="jogador__avatar jogador__avatar--personagem" aria-hidden="true"><AvatarPerfil personagem={p.personagem} emoji={p.emoji} tamanho={64} acao="aceno" /></span>
               <span className="jogador__info">
                 <strong>{p.nome}</strong>
                 <span>{PLANOS[p.plano]?.nome}</span>

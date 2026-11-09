@@ -59,3 +59,12 @@ describe('treino ativo', () => {
     expect(r.seriesFeitas).toBe(r.seriesTotal);
   });
 });
+
+describe('cargas iniciais', () => {
+  it('sem histórico usa a carga inicial cadastrada (com % da semana)', () => {
+    const t = montarTreino(plano, { sessaoId: 'x', data: 'd', semana: 1, agora: 0, historico: {}, cargasIniciais: { 'supino-reto': 50 } });
+    expect(t.exercicios[0].series[0].carga).toBe(50);
+    const rec = montarTreino(diaPlanejado(4, 0).musculacao!, { sessaoId: 'x', data: 'd', semana: 4, agora: 0, historico: {}, cargasIniciais: { 'supino-reto': 50 } });
+    expect(rec.exercicios[0].series[0].carga).toBe(45);
+  });
+});

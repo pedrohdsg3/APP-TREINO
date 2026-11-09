@@ -13,11 +13,13 @@ export interface Perfil {
   criado: string;
   /** data de início padrão do programa (segunda-feira) */
   inicio?: string;
+  /** personagem ilustrado (senão usa o emoji) */
+  personagem?: 'pedro' | 'yana';
 }
 
 const CHAVE = 'treino.perfis';
-const PEDRO: Perfil = { id: 'pedro', nome: 'Pedro', emoji: '💪', plano: 'pedro', banco: 'app-treino', criado: '2026-11-09', inicio: '2026-11-09' };
-const YANA: Perfil = { id: 'yana', nome: 'Yana', emoji: '🌸', plano: 'feminino', banco: 'app-treino-yana', criado: '2026-11-10', inicio: '2026-11-16' };
+const PEDRO: Perfil = { id: 'pedro', nome: 'Pedro', emoji: '💪', plano: 'pedro', banco: 'app-treino', criado: '2026-11-09', inicio: '2026-11-09', personagem: 'pedro' };
+const YANA: Perfil = { id: 'yana', nome: 'Yana', emoji: '🌸', plano: 'feminino', banco: 'app-treino-yana', criado: '2026-11-10', inicio: '2026-11-16', personagem: 'yana' };
 /** Marca que o perfil da Yana já foi adicionado uma vez (se for excluído, não volta). */
 const SEMEADO = 'treino.perfis.yana';
 
@@ -30,7 +32,8 @@ export function listarPerfis(): Perfil[] {
       localStorage.setItem(SEMEADO, '1');
       salvarPerfis(l);
     }
-    return l;
+    // perfis antigos ganham o personagem ilustrado
+    return l.map((p) => (p.personagem || !['pedro', 'yana'].includes(p.id) ? p : { ...p, personagem: p.id as 'pedro' | 'yana' }));
   } catch { /* sem storage */ }
   return [PEDRO, YANA];
 }

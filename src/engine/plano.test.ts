@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { diaPlanejado, faseDaSemana, posicao, repetirSemana, semanaDoPrograma, corridaPlanejada, prescricao, type ConfigPrograma } from './plano';
+import { diaPlanejado, faseDaSemana, posicao, repetirSemana, semanaDoPrograma, corridaPlanejada, prescricao, musculacaoPlanejada, planoDaData, type ConfigPrograma } from './plano';
 import { formatarData, somarDias } from '../lib/datas';
 
 const cfg: ConfigPrograma = { inicio: '2026-11-09', repetidas: [] };
@@ -84,5 +84,21 @@ describe('treinos planejados', () => {
     expect(itens.map(prescricao)).toContain('3 × 45 s');
     expect(itens.map(prescricao)).toContain('3 × até perto da falha');
     expect(diaPlanejado(1, 6).musculacao!.itens.map(prescricao)).toContain('3 × 20 cada lado');
+  });
+});
+
+describe('personalização dos treinos', () => {
+  it('troca, remove e adiciona exercícios', () => {
+    const m = musculacaoPlanejada('pernas', 1, { personalizacao: { trocar: { agachamento: 'leg-press' }, remover: ['panturrilha'], adicionar: [{ exercicioId: 'abdutora', series: 3, reps: 15 }] } });
+    const ids = m.itens.map((i) => i.exercicioId);
+    expect(ids).not.toContain('agachamento');
+    expect(ids).not.toContain('panturrilha');
+    expect(ids.at(-1)).toBe('abdutora');
+    // trocar por um exercício que já está no treino não duplica a adição
+    expect(ids.filter((x) => x === 'leg-press')).toHaveLength(2);
+  });
+  it('planoDaData aplica a personalização do config', () => {
+    const d = planoDaData({ inicio: '2026-11-09', repetidas: [], personalizacao: { 'peito-triceps': { remover: ['cross-over'] } } }, '2026-11-09')!;
+    expect(d.musculacao!.itens.map((i) => i.exercicioId)).not.toContain('cross-over');
   });
 });

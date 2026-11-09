@@ -53,3 +53,6 @@ export const IcAuto = (p: P) => (
 export const IcEscudo = (p: P) => (
   <svg {...base(p)}><path d="M12 3 5 6v5.5c0 4.4 3 8 7 9.5 4-1.5 7-5.1 7-9.5V6l-7-3Z" /><path d="m9 12 2 2 4-4" /></svg>
 );
+export const IcDuelo = (p: P) => (
+  <svg {...base(p)}><path d="M4 4l7 7M4 4h4M4 4v4M20 4l-7 7M20 4h-4M20 4v4" /><path d="M9.5 13.5 5 18m0 0-1.5 1.5M5 18l1.5 1.5M14.5 13.5 19 18m0 0 1.5 1.5M19 18l-1.5 1.5" /></svg>
+);
