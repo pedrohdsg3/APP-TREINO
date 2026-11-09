@@ -18,7 +18,7 @@ function quando(data: string, hoje: string) {
   return formatarData(data);
 }
 
-export function Hoje({ aoIniciar }: { aoIniciar: (p: DiaPlanejado) => void }) {
+export function Hoje({ aoIniciar }: { aoIniciar: (p: DiaPlanejado, modo: 'principal' | 'musculacao') => void }) {
   const cfg = useConfigPrograma();
   const hoje = isoLocal();
   const sessoes = useLiveQuery(() => db.sessoes.toArray(), []) ?? [];
@@ -37,7 +37,10 @@ export function Hoje({ aoIniciar }: { aoIniciar: (p: DiaPlanejado) => void }) {
   const feitos = feitosNaSemana(sessoes, inicioSemana);
   const seq = sequencia(sessoes, hoje);
   const ultima = ultimaSessao(sessoes, hoje);
-  const jaFeitoHoje = sessoes.some((s) => s.data === hoje && s.status === 'feito');
+  const doDia = sessoes.filter((s) => s.data === hoje && s.status !== 'pulado');
+  const principalFeito = doDia.some((s) => s.tipo === (plano?.tipoPrincipal ?? 'musculacao') && s.status === 'feito');
+  const extraFeito = doDia.some((s) => s.tipo === 'musculacao' && s.status === 'feito');
+  const temExtra = !!(plano?.corrida && plano.musculacao);
   const cor = plano?.tipoPrincipal === 'corrida' ? 'corr' : 'musc';
 
   return (
@@ -65,9 +68,12 @@ export function Hoje({ aoIniciar }: { aoIniciar: (p: DiaPlanejado) => void }) {
           </div>
           {plano.corrida && <BarraFases corrida={plano.corrida} />}
           {plano.recuperacao && <p className="nota-recup">🌿 Semana de recuperação: menos volume, carga ~10% menor.</p>}
-          {jaFeitoHoje
-            ? <Botao grande variante="secundario" onClick={() => setDetalhe({ data: dataTreino, plano })}>Treino de hoje concluído ✅</Botao>
-            : <Botao grande cor={cor} icone={<IcPlay tamanho={20} />} onClick={() => aoIniciar(plano)}>Iniciar treino</Botao>}
+          {pos.estado === 'antes' ? null : principalFeito
+            ? <Botao grande variante="secundario" onClick={() => setDetalhe({ data: dataTreino, plano })}>{temExtra ? 'Corrida concluída ✅' : 'Treino de hoje concluído ✅'}</Botao>
+            : <Botao grande cor={cor} icone={<IcPlay tamanho={20} />} onClick={() => aoIniciar(plano, 'principal')}>{temExtra ? 'Iniciar corrida' : 'Iniciar treino'}</Botao>}
+          {pos.estado !== 'antes' && temExtra && (extraFeito
+            ? <p className="sutil centro">Abdômen concluído ✅</p>
+            : <Botao variante="secundario" icone={<IcHalter tamanho={18} />} onClick={() => aoIniciar(plano, 'musculacao')}>Iniciar abdômen (~{plano.musculacao!.minutos} min)</Botao>)}
           <button className="link" onClick={() => setDetalhe({ data: dataTreino, plano })}>Ver treino completo</button>
         </Card>
       ) : (

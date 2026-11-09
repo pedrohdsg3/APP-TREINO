@@ -11,6 +11,18 @@ export interface Sessao {
   duracaoSeg?: number;
   esforco?: number;
   notas?: string;
+  /** semana do programa (1..12) e id do treino planejado */
+  semana?: number;
+  treinoId?: string;
+  volumeKg?: number;
+  prs?: number;
+  /** desconfortos anotados: exercicioId -> partes do corpo */
+  dores?: Record<string, string[]>;
+  /** notas por exercício */
+  notasExercicio?: Record<string, string>;
+  /** início/fim (timestamps) */
+  inicioTs?: number;
+  fimTs?: number;
 }
 export interface RegistroSerie {
   id?: number;
@@ -54,4 +66,8 @@ db.version(1).stores({
   corridas: 'sessaoId',
   corpo: 'data',
   ajustes: 'chave',
+});
+db.version(2).stores({
+  sessoes: 'id, data, tipo, status, treinoId',
+  series: '++id, sessaoId, exercicioId, timestamp, [sessaoId+exercicioId]',
 });
