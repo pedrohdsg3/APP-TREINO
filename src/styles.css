@@ -940,3 +940,12 @@ strong, .num { font-variant-numeric: tabular-nums; }
 .instalar summary { font-weight: 700; font-size: 15px; cursor: pointer; min-height: 32px; display: flex; align-items: center; }
 .instalar ol { margin: 8px 0 0; padding-left: 20px; display: flex; flex-direction: column; gap: 6px; font-size: 14px; color: var(--texto-2); line-height: 1.45; }
 .instalar strong { color: var(--texto); }
+.online { display: flex; flex-direction: column; gap: 10px; }
+.online__topo { display: flex; gap: 12px; align-items: flex-start; }
+.online__topo h3 { font-size: 16px; font-weight: 760; }
+.online__ponto { width: 12px; height: 12px; border-radius: 50%; margin-top: 5px; flex-shrink: 0; background: var(--texto-3); }
+.online__ponto--ok { background: var(--corr); box-shadow: 0 0 0 4px var(--corr-suave); animation: pulso 2s ease-in-out infinite; }
+.online__ponto--erro { background: var(--coral); }
+@keyframes pulso { 0%, 100% { box-shadow: 0 0 0 4px var(--corr-suave); } 50% { box-shadow: 0 0 0 8px transparent; } }
+.online__codigo { display: flex; flex-direction: column; align-items: center; gap: 2px; padding: 12px; border-radius: 14px; background: var(--superficie-2); }
+.online__codigo strong { font-size: 28px; font-weight: 820; letter-spacing: 0.08em; }

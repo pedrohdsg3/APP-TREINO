@@ -14,9 +14,34 @@ export interface Participante {
   feitos: string[];
   /** dias com cardio leve */
   cardios: string[];
-  /** veio de outro celular (código de placar) */
+  /** veio de outro celular (código de placar ou nuvem) */
   externo?: boolean;
+  /** sincronizado pelo duelo online */
+  online?: boolean;
+  uid?: string;
   atualizadoEm?: string;
+}
+
+/**
+ * Junta os participantes: locais deste aparelho + placares de fora (online ou colados).
+ * - O meu próprio placar online (meuUid) é ignorado: o local já é a fonte.
+ * - Um placar de fora com o mesmo nome de um perfil local SEM treinos substitui o local
+ *   (ex.: o perfil "Yana" vazio no celular do Pedro). Online tem prioridade sobre colado.
+ */
+export function mesclar(locais: Participante[], deFora: Participante[], meuUid?: string): Participante[] {
+  const fora = deFora
+    .filter((p) => !(p.online && p.uid === meuUid))
+    .sort((a, b) => Number(!!b.online) - Number(!!a.online)); // online primeiro
+  const mesmo = (a: Participante, b: Participante) => a.nome.trim().toLowerCase() === b.nome.trim().toLowerCase();
+  const usados = new Set<Participante>();
+  const out = locais.map((l) => {
+    const f = fora.find((x) => !usados.has(x) && mesmo(x, l));
+    if (!f) return l;
+    usados.add(f);
+    return l.feitos.length === 0 && l.cardios.length === 0 ? f : l;
+  });
+  for (const f of fora) if (!usados.has(f) && !out.some((o) => mesmo(o, f))) { out.push(f); usados.add(f); }
+  return out;
 }
 
 const diaIdx = (iso: string) => (deIso(iso).getDay() + 6) % 7; // 0 = segunda

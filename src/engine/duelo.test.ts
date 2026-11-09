@@ -1,5 +1,5 @@
 import { describe, expect, it } from 'vitest';
-import { codificar, decodificar, estatisticas, lider, placarSemanas, sequenciaAtual, type Participante } from './duelo';
+import { codificar, decodificar, estatisticas, lider, mesclar, placarSemanas, sequenciaAtual, type Participante } from './duelo';
 
 const pedro: Participante = { id: 'pedro', nome: 'Pedro', emoji: '💪', personagem: 'pedro', plano: 'pedro', inicio: '2026-11-09', feitos: [], cardios: [] };
 const yana: Participante = { id: 'yana', nome: 'Yana', emoji: '🌸', personagem: 'yana', plano: 'feminino', inicio: '2026-11-16', feitos: [], cardios: [] };
@@ -34,5 +34,24 @@ describe('duelo', () => {
     const d = decodificar(`Meu placar 💪 ${codificar(y)}`);
     expect(d).toMatchObject({ nome: 'Yanã', plano: 'feminino', feitos: ['2026-11-16'], personagem: 'yana', externo: true });
     expect(() => decodificar('oi')).toThrow();
+  });
+});
+
+describe('mesclar participantes', () => {
+  const onlineYana = { ...yana, id: 'nuvem-y', online: true, uid: 'y', externo: true, feitos: ['2026-11-16'] };
+  const onlinePedro = { ...pedro, id: 'nuvem-p', online: true, uid: 'p', externo: true, feitos: ['2026-11-09'] };
+  it('no celular do Pedro: Yana local vazia é trocada pela online; o próprio placar online é ignorado', () => {
+    const r = mesclar([{ ...pedro, feitos: ['2026-11-09'] }, yana], [onlineYana, onlinePedro], 'p');
+    expect(r.map((x) => x.id)).toEqual(['pedro', 'nuvem-y']);
+  });
+  it('online tem prioridade sobre placar colado com o mesmo nome', () => {
+    const colada = { ...yana, id: 'ext-yana', externo: true, feitos: [] as string[] };
+    const r = mesclar([{ ...pedro, feitos: ['2026-11-09'] }, yana], [colada, onlineYana], 'p');
+    expect(r[1].id).toBe('nuvem-y');
+  });
+  it('perfil local com treinos não é substituído', () => {
+    const r = mesclar([{ ...yana, feitos: ['2026-11-17'] }], [onlineYana], 'outro');
+    expect(r).toHaveLength(1);
+    expect(r[0].id).toBe('yana');
   });
 });

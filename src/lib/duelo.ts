@@ -1,7 +1,8 @@
 // Carrega os participantes do duelo: perfis deste aparelho + placares colados de outros celulares.
 import { comBanco } from '../db';
-import type { Participante } from '../engine/duelo';
-import { listarPerfis, type Perfil } from './perfis';
+import { mesclar, type Participante } from '../engine/duelo';
+import { listarPerfis, perfilAtual, type Perfil } from './perfis';
+import { publicar } from './nuvem';
 
 const EXTERNOS = 'treino.duelo.externos';
 
@@ -30,17 +31,13 @@ export function removerExterno(id: string) {
   try { localStorage.setItem(EXTERNOS, JSON.stringify(lerExternos().filter((x) => x.id !== id))); } catch { /* ignora */ }
 }
 
-/**
- * Todos os participantes. Se um placar externo tiver o mesmo nome de um perfil local SEM treinos
- * (ex.: o perfil "Yana" vazio no celular do Pedro), o externo substitui o local.
- */
-export async function carregarParticipantes(): Promise<Participante[]> {
+/** Participantes locais + placares colados (os online chegam pela escuta da sala). */
+export async function carregarParticipantes(online: Participante[] = [], meuUid?: string): Promise<Participante[]> {
   const locais = await Promise.all(listarPerfis().map(participanteDoPerfil));
-  const externos = lerExternos();
-  const out = locais.map((l) => {
-    const ext = externos.find((e) => e.nome.toLowerCase() === l.nome.toLowerCase());
-    return ext && l.feitos.length === 0 ? ext : l;
-  });
-  for (const e of externos) if (!out.some((o) => o.id === e.id || o.nome.toLowerCase() === e.nome.toLowerCase())) out.push(e);
-  return out;
+  return mesclar(locais, [...online, ...lerExternos()], meuUid);
+}
+
+/** Publica o placar do perfil ativo no duelo online (se houver sala). */
+export async function publicarAtual(): Promise<boolean> {
+  return publicar(await participanteDoPerfil(perfilAtual()));
 }

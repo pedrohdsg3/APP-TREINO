@@ -1,7 +1,8 @@
 // Duelo ⚔️ — quem comparece mais aos treinos.
 import { useEffect, useState } from 'react';
 import { codificar, decodificar, estatisticas, lider, placarSemanas, segundaDa, sequenciaAtual, type Participante, type Stats } from '../engine/duelo';
-import { carregarParticipantes, participanteDoPerfil, removerExterno, salvarExterno } from '../lib/duelo';
+import { carregarParticipantes, participanteDoPerfil, publicarAtual, removerExterno, salvarExterno } from '../lib/duelo';
+import { criarSala, entrarSala, formatarCodigo, nuvemConfigurada, ouvirSala, sairSala, salaDoPerfil } from '../lib/nuvem';
 import { perfilAtual } from '../lib/perfis';
 import { formatarData, isoLocal, somarDias } from '../lib/datas';
 import { Botao, Card, Segmentado } from '../ui/Componentes';
@@ -18,16 +19,28 @@ export function Duelo() {
   const [ib, setIb] = useState(1);
   const [colar, setColar] = useState(false);
   const [versao, setVersao] = useState(0);
+  const [sala, setSala] = useState(salaDoPerfil());
+  const [online, setOnline] = useState<Participante[]>([]);
+  const [meuUid, setMeuUid] = useState<string>();
+  const [estadoNuvem, setEstadoNuvem] = useState<'conectando' | 'ok' | 'erro'>('conectando');
   const hoje = isoLocal();
 
+  // duelo online: publica o meu placar e escuta o dos outros em tempo real
   useEffect(() => {
-    void carregarParticipantes().then((l) => {
+    if (!sala) { setOnline([]); return; }
+    setEstadoNuvem('conectando');
+    void publicarAtual();
+    return ouvirSala((l, uid) => { setOnline(l); setMeuUid(uid); setEstadoNuvem('ok'); }, () => setEstadoNuvem('erro'));
+  }, [sala]);
+
+  useEffect(() => {
+    void carregarParticipantes(online, meuUid).then((l) => {
       // o perfil ativo fica à esquerda
       const atual = l.findIndex((p) => p.id === perfilAtual().id);
       const ordenada = atual > 0 ? [l[atual], ...l.filter((_, i) => i !== atual)] : l;
       setLista(ordenada);
     });
-  }, [versao]);
+  }, [versao, online, meuUid]);
 
   if (!lista) return <div className="tela" />;
   const cabecalho = (
@@ -40,7 +53,8 @@ export function Duelo() {
     return (
       <div className="tela">
         {cabecalho}
-        <Card className="entra"><p className="sutil">Crie um segundo perfil (Perfil → Trocar de perfil) ou cole o placar de outro celular para começar o duelo.</p></Card>
+        <Card className="entra"><p className="sutil">Conecte o duelo online com a outra pessoa (cada um no seu celular) ou crie um segundo perfil neste aparelho.</p></Card>
+        <DueloOnline sala={sala} estado={estadoNuvem} aoMudar={setSala} />
         <OutroCelular onColar={() => setColar(true)} />
         <ColarPlacar aberta={colar} fechar={() => setColar(false)} aoSalvar={() => setVersao((v) => v + 1)} />
       </div>
@@ -111,7 +125,8 @@ export function Duelo() {
         </Card>
       )}
 
-      <OutroCelular onColar={() => setColar(true)} externos={lista.filter((p) => p.externo)} aoRemover={(id) => { removerExterno(id); setVersao((v) => v + 1); }} />
+      <DueloOnline sala={sala} estado={estadoNuvem} aoMudar={setSala} participantesOnline={lista.filter((p) => p.online)} />
+      <OutroCelular onColar={() => setColar(true)} externos={lista.filter((p) => p.externo && !p.online)} aoRemover={(id) => { removerExterno(id); setVersao((v) => v + 1); }} />
       <ColarPlacar aberta={colar} fechar={() => setColar(false)} aoSalvar={() => setVersao((v) => v + 1)} />
     </div>
   );
@@ -154,6 +169,76 @@ function mensagem(a: Participante, b: Participante, sa: Stats, sb: Stats, quem: 
   return dif > 0 ? `${l.nome} na frente por ${dif} ponto(s) de presença. Bora, ${o.nome}! 😤` : `${l.nome} na frente por treinos feitos. Tá apertado!`;
 }
 
+function DueloOnline({ sala, estado, aoMudar, participantesOnline = [] }: {
+  sala: string | null; estado: 'conectando' | 'ok' | 'erro'; aoMudar: (s: string | null) => void; participantesOnline?: Participante[];
+}) {
+  const [entrar, setEntrar] = useState(false);
+  const [codigo, setCodigo] = useState('');
+  const [erro, setErro] = useState<string | null>(null);
+  const [ocupado, setOcupado] = useState(false);
+  if (!nuvemConfigurada()) return null;
+
+  async function executar(f: () => Promise<string>) {
+    setOcupado(true); setErro(null);
+    try { aoMudar(await f()); setEntrar(false); setCodigo(''); }
+    catch (e) { setErro(navigator.onLine ? (e as Error).message : 'Sem internet. Tente de novo conectado.'); }
+    finally { setOcupado(false); }
+  }
+  async function compartilhar(c: string) {
+    const texto = `Bora duelar no app de treino! 💪 Abra a aba Duelo → "Entrar com código" e use: ${formatarCodigo(c)}`;
+    try { if (navigator.share) await navigator.share({ text: texto }); else await navigator.clipboard.writeText(texto); }
+    catch { await navigator.clipboard?.writeText(texto).catch(() => {}); }
+  }
+
+  if (sala) {
+    return (
+      <Card className="online entra">
+        <div className="online__topo">
+          <span className={`online__ponto online__ponto--${estado}`} aria-hidden="true" />
+          <div>
+            <h3>Duelo online {estado === 'ok' ? 'conectado' : estado === 'erro' ? '· sem conexão' : '· conectando…'}</h3>
+            <p className="sutil">Atualiza sozinho quando alguém salva um treino.{estado === 'erro' ? ' Sem internet agora: o placar atualiza quando voltar.' : ''}</p>
+          </div>
+        </div>
+        <div className="online__codigo">
+          <span className="sutil">Código da sala</span>
+          <strong className="num">{formatarCodigo(sala)}</strong>
+        </div>
+        {participantesOnline.length > 0 && (
+          <p className="sutil">Na sala: {participantesOnline.map((p) => `${p.nome}${p.atualizadoEm ? ` (atualizado ${formatarData(p.atualizadoEm.slice(0, 10))})` : ''}`).join(', ')}</p>
+        )}
+        {participantesOnline.length === 0 && estado === 'ok' && <p className="sutil">Esperando a outra pessoa entrar com o código…</p>}
+        <div className="perdido__acoes">
+          <Botao variante="secundario" onClick={() => compartilhar(sala)}>Enviar código</Botao>
+          <Botao variante="fantasma" onClick={async () => { await sairSala(); aoMudar(null); }}>Sair da sala</Botao>
+        </div>
+      </Card>
+    );
+  }
+
+  return (
+    <Card className="online entra">
+      <h3 className="card__titulo">🌐 Duelo online (automático)</h3>
+      <p className="sutil">Cada um no seu celular e o placar atualiza sozinho. Uma pessoa cria a sala e manda o código; a outra entra com ele.</p>
+      <p className="sutil">Vai para a nuvem só: nome, avatar, plano e as datas em que treinou. Cargas, peso e corridas ficam no celular.</p>
+      <div className="perdido__acoes">
+        <Botao disabled={ocupado} onClick={() => executar(criarSala)}>Criar sala</Botao>
+        <Botao variante="secundario" disabled={ocupado} onClick={() => setEntrar(true)}>Entrar com código</Botao>
+      </div>
+      {erro && <p className="aviso-campo">{erro}</p>}
+      <Folha aberta={entrar} aoFechar={() => setEntrar(false)} titulo="Entrar com código">
+        <div className="detalhe">
+          <h2 className="detalhe__titulo">Entrar no duelo</h2>
+          <label className="campo"><span>Código de 8 caracteres</span>
+            <input value={codigo} onChange={(e) => setCodigo(e.target.value.toUpperCase())} placeholder="ABCD-2345" autoCapitalize="characters" autoComplete="off" maxLength={9} /></label>
+          {erro && <p className="aviso-campo">{erro}</p>}
+          <Botao grande disabled={ocupado || codigo.replace(/[^A-Z0-9]/gi, '').length !== 8} onClick={() => executar(() => entrarSala(codigo))}>{ocupado ? 'Entrando…' : 'Entrar'}</Botao>
+        </div>
+      </Folha>
+    </Card>
+  );
+}
+
 function OutroCelular({ onColar, externos = [], aoRemover }: { onColar: () => void; externos?: Participante[]; aoRemover?: (id: string) => void }) {
   const [msg, setMsg] = useState<string | null>(null);
   async function enviar() {
@@ -168,7 +253,7 @@ function OutroCelular({ onColar, externos = [], aoRemover }: { onColar: () => vo
   }
   return (
     <Card className="outro-celular">
-      <h3 className="card__titulo">📱 Cada um no seu celular?</h3>
+      <h3 className="card__titulo">{nuvemConfigurada() ? '📱 Sem internet? Placar manual' : '📱 Cada um no seu celular?'}</h3>
       <p className="sutil">Os dados ficam em cada aparelho. Para duelar, envie seu placar pelo WhatsApp e a outra pessoa cola aqui (e vice-versa). Repita quando quiser atualizar.</p>
       <div className="perdido__acoes">
         <Botao variante="secundario" onClick={enviar}>Enviar meu placar</Botao>
