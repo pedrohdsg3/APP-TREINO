@@ -1,5 +1,5 @@
 // Leitura e gravação dos treinos de musculação no IndexedDB.
-import { db, type Sessao } from '../db';
+import { comRetentativa, db, type Sessao } from '../db';
 import type { HistoricoEx, TreinoAtivo } from '../engine/treinoAtivo';
 import { resumir, treinoConcluido } from '../engine/treinoAtivo';
 import type { CorridaAtiva } from '../engine/corridaAtiva';
@@ -45,13 +45,16 @@ export async function salvarTreino(t: TreinoAtivo, extra: { esforco?: number; no
     notasExercicio: Object.fromEntries(t.exercicios.filter((e) => e.nota?.trim()).map((e) => [e.item.exercicioId, e.nota!.trim()])),
     inicioTs: t.inicio, fimTs: t.fim ?? agora,
   };
-  await db.transaction('rw', db.sessoes, db.series, async () => {
+  const num = (v: unknown) => (typeof v === 'number' && Number.isFinite(v) ? v : 0);
+  const series = t.exercicios.flatMap((e) => e.series.map((s, k) => ({
+    sessaoId: t.sessaoId, exercicioId: e.item.exercicioId, serie: k + 1, carga: num(s.carga), reps: num(s.reps), feita: !!s.feita, timestamp: s.ts ?? agora,
+  })));
+  // `db` é lido dentro da função: após reabrir o banco, a retentativa usa a conexão nova
+  await comRetentativa(() => db.transaction('rw', db.sessoes, db.series, async () => {
     await db.series.where('sessaoId').equals(t.sessaoId).delete();
     await db.sessoes.put(sessao);
-    await db.series.bulkAdd(t.exercicios.flatMap((e) => e.series.map((s, k) => ({
-      sessaoId: t.sessaoId, exercicioId: e.item.exercicioId, serie: k + 1, carga: s.carga, reps: s.reps, feita: s.feita, timestamp: s.ts ?? agora,
-    }))));
-  });
+    await db.series.bulkAdd(series);
+  }));
   return sessao;
 }
 
@@ -64,14 +67,14 @@ export async function salvarCorrida(t: CorridaAtiva, r: { distanciaKm?: number; 
     esforco: r.esforco, notas: r.notas?.trim() || undefined, semana: t.semana, treinoId: t.treinoId,
     inicioTs: t.inicio, fimTs: t.fim ?? agora,
   };
-  await db.transaction('rw', db.sessoes, db.corridas, async () => {
+  await comRetentativa(() => db.transaction('rw', db.sessoes, db.corridas, async () => {
     await db.sessoes.put(sessao);
     await db.corridas.put({
       sessaoId: t.sessaoId, estrutura: t.resumo, duracaoSeg: res.duracaoSeg, distanciaKm: r.distanciaKm,
       paceSegKm: pace(res.duracaoSeg, r.distanciaKm), esforco: r.esforco, dorJoelho: r.dorJoelho,
       troteSeg: res.troteSeg, maiorTroteSeg: res.maiorTroteSeg, dorDurante: t.dorDurante, modo: t.modo,
     });
-  });
+  }));
   return sessao;
 }
 
@@ -82,4 +85,15 @@ export async function dorCorridaAnterior(antesDe: number, excluirId: string): Pr
     .sort((a, b) => (b.inicioTs ?? 0) - (a.inicioTs ?? 0));
   if (!sessoes[0]) return undefined;
   return (await db.corridas.get(sessoes[0].id))?.dorJoelho;
+}
+
+/** Último recurso: baixa o treino em andamento como arquivo, para nunca perder o registro. */
+export function baixarTreinoEmAndamento(dados: unknown, nome: string) {
+  try {
+    const url = URL.createObjectURL(new Blob([JSON.stringify(dados, null, 1)], { type: 'application/json' }));
+    const a = document.createElement('a');
+    a.href = url; a.download = nome;
+    document.body.appendChild(a); a.click(); a.remove();
+    setTimeout(() => URL.revokeObjectURL(url), 2000);
+  } catch { /* ignora */ }
 }

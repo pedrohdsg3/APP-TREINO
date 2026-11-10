@@ -8,7 +8,7 @@ import { proximaCorrida } from '../engine/plano';
 import { REGRAS_JOELHO } from '../data/corrida';
 import { avisar, falar } from '../lib/alertas';
 import { fmtRelogio, useAgora, useWakeLock } from '../lib/ganchos';
-import { dorCorridaAnterior, salvarCorrida } from '../lib/historico';
+import { baixarTreinoEmAndamento, dorCorridaAnterior, salvarCorrida } from '../lib/historico';
 import { lerConfigPrograma, salvarConfigPrograma } from '../lib/ajustes';
 import { dataPorExtenso, formatarData } from '../lib/datas';
 import { Botao } from '../ui/Componentes';
@@ -202,6 +202,7 @@ function Registro({ t, atualizar, aoSair, aoDor }: {
   const [notas, setNotas] = useState('');
   const [salvando, setSalvando] = useState(false);
   const [descartar, setDescartar] = useState(false);
+  const [erroSalvar, setErroSalvar] = useState<string | null>(null);
   const [confete] = useState(Date.now());
   const dist = parseFloat(km.replace(',', '.'));
   const p = pace(r.duracaoSeg, Number.isFinite(dist) ? dist : undefined);
@@ -244,16 +245,29 @@ function Registro({ t, atualizar, aoSair, aoDor }: {
         </label>
       </div>
       <div className="guiado__rodape">
+        {erroSalvar && (
+          <div className="erro-salvar" role="alert">
+            <strong>Não consegui salvar ainda.</strong>
+            <span>A corrida continua guardada neste celular — nada foi perdido. Toque em "Tentar de novo".</span>
+            <small>Detalhe: {erroSalvar}</small>
+            <button className="link" onClick={() => baixarTreinoEmAndamento(t, `corrida-${t.data}.json`)}>Baixar uma cópia da corrida</button>
+          </div>
+        )}
         <Botao grande cor="corr" disabled={salvando} onClick={async () => {
-          setSalvando(true);
-          const agora = Date.now();
-          await salvarCorrida(t, { distanciaKm: Number.isFinite(dist) && dist > 0 ? dist : undefined, esforco, dorJoelho: dor, notas }, agora);
-          gravarCorridaAtiva(null);
-          if ((dor ?? 0) >= 4) {
-            const anterior = await dorCorridaAnterior(t.inicio, t.sessaoId);
-            aoDor(dor!, (anterior ?? 0) >= 4);
-          } else aoSair(true);
-        }}>Salvar corrida ✅</Botao>
+          setSalvando(true); setErroSalvar(null);
+          try {
+            const agora = Date.now();
+            await salvarCorrida(t, { distanciaKm: Number.isFinite(dist) && dist > 0 ? dist : undefined, esforco, dorJoelho: dor, notas }, agora);
+            gravarCorridaAtiva(null);
+            if ((dor ?? 0) >= 4) {
+              const anterior = await dorCorridaAnterior(t.inicio, t.sessaoId).catch(() => undefined);
+              aoDor(dor!, (anterior ?? 0) >= 4);
+            } else aoSair(true);
+          } catch (e) {
+            setErroSalvar(`${(e as Error).name ?? 'Erro'}: ${(e as Error).message ?? e}`.slice(0, 200));
+            setSalvando(false);
+          }
+        }}>{salvando ? 'Salvando…' : erroSalvar ? 'Tentar de novo' : 'Salvar corrida ✅'}</Botao>
         <div className="links-rodape">
           <button className="link" onClick={() => atualizar((x) => ({ ...x, etapa: 'correndo', fim: undefined }))}>Voltar à corrida</button>
           <button className="link link--perigo" onClick={() => setDescartar(true)}>Descartar corrida</button>

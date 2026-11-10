@@ -8,7 +8,7 @@ import {
   exConcluido, fazerAgora, gravarTreinoAtivo, proximoPendente, pularExercicio, removerSerie, resumir,
   seriesFeitas, treinoConcluido, trocarExercicio, type TreinoAtivo,
 } from '../engine/treinoAtivo';
-import { historicoDe, salvarTreino, sessaoAnteriorDoTreino } from '../lib/historico';
+import { baixarTreinoEmAndamento, historicoDe, salvarTreino, sessaoAnteriorDoTreino } from '../lib/historico';
 import { avisar } from '../lib/alertas';
 import { fmtRelogio, useAgora, useWakeLock } from '../lib/ganchos';
 import { lerPrefs } from '../lib/prefs';
@@ -427,6 +427,7 @@ function ResumoTreino({ t, atualizar, aoSair }: PropsEtapa) {
   const [notas, setNotas] = useState('');
   const [anterior, setAnterior] = useState<Sessao | undefined>();
   const [salvando, setSalvando] = useState(false);
+  const [erroSalvar, setErroSalvar] = useState<string | null>(null);
   const [confete, setConfete] = useState(0);
   useEffect(() => { void sessaoAnteriorDoTreino(t.treinoId, t.data, t.sessaoId).then(setAnterior); }, [t.treinoId, t.data, t.sessaoId]);
   useEffect(() => { if (treinoConcluido(t) || r.prs.length) setConfete(Date.now()); }, []); // eslint-disable-line react-hooks/exhaustive-deps
@@ -477,12 +478,25 @@ function ResumoTreino({ t, atualizar, aoSair }: PropsEtapa) {
         </label>
       </div>
       <div className="guiado__rodape">
+        {erroSalvar && (
+          <div className="erro-salvar" role="alert">
+            <strong>Não consegui salvar ainda.</strong>
+            <span>Seu treino continua guardado neste celular — nada foi perdido. Toque em "Tentar de novo".</span>
+            <small>Detalhe: {erroSalvar}</small>
+            <button className="link" onClick={() => baixarTreinoEmAndamento(t, `treino-${t.data}-${t.treinoId}.json`)}>Baixar uma cópia do treino</button>
+          </div>
+        )}
         <Botao grande disabled={salvando} onClick={async () => {
-          setSalvando(true);
-          await salvarTreino(t, { esforco, notas }, Date.now());
-          gravarTreinoAtivo(null);
-          aoSair(true);
-        }}>Salvar treino ✅</Botao>
+          setSalvando(true); setErroSalvar(null);
+          try {
+            await salvarTreino(t, { esforco, notas }, Date.now());
+            gravarTreinoAtivo(null);
+            aoSair(true);
+          } catch (e) {
+            setErroSalvar(`${(e as Error).name ?? 'Erro'}: ${(e as Error).message ?? e}`.slice(0, 200));
+            setSalvando(false);
+          }
+        }}>{salvando ? 'Salvando…' : erroSalvar ? 'Tentar de novo' : 'Salvar treino ✅'}</Botao>
         {!completo && <button className="link" onClick={() => atualizar((x) => ({ ...x, etapa: 'exercicio', fim: undefined }))}>Voltar ao treino</button>}
       </div>
       <Confete disparo={confete} />

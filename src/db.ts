@@ -93,6 +93,36 @@ export function abrirBanco(nome: string) {
   db = criarBanco(nome);
 }
 
+/**
+ * Reabre a conexão do banco ativo. O navegador pode fechar a conexão do IndexedDB
+ * quando o app fica muito tempo em segundo plano (ex.: treino de 1 h ouvindo música).
+ */
+export async function reabrirBanco() {
+  const nome = db.name;
+  try { db.close(); } catch { /* já fechado */ }
+  db = criarBanco(nome);
+  await db.open();
+}
+
+function comPrazo<T>(p: Promise<T>, ms: number): Promise<T> {
+  return new Promise<T>((ok, erro) => {
+    const id = setTimeout(() => erro(Object.assign(new Error(`a gravação não respondeu em ${ms / 1000} s`), { name: 'TempoEsgotado' })), ms);
+    p.then((v) => { clearTimeout(id); ok(v); }, (e) => { clearTimeout(id); erro(e); });
+  });
+}
+
+/** Executa uma gravação; se falhar ou travar, reabre o banco e tenta mais uma vez. */
+export async function comRetentativa<T>(f: () => Promise<T>): Promise<T> {
+  try {
+    if (!db.isOpen()) await comPrazo(db.open(), 8000);
+    return await comPrazo(f(), 8000);
+  } catch (e1) {
+    console.warn('Gravação falhou, reabrindo o banco e tentando de novo:', e1);
+    await comPrazo(reabrirBanco(), 10000);
+    return await comPrazo(f(), 15000);
+  }
+}
+
 /** Usa o banco ativo se for o mesmo; senão abre uma instância temporária (outro perfil). */
 export async function comBanco<T>(nome: string, f: (b: Banco) => Promise<T>): Promise<T> {
   if (db.name === nome) return f(db);
