@@ -19,7 +19,8 @@ const ehPernas = (p: DiaPlanejado) => !!p.musculacao?.itens.some((i) => ['Quadr�
 
 /** Dias planejados (sem descanso) dos últimos `janela` dias, antes de hoje, sem nenhum registro e não resolvidos. */
 export function treinosPerdidos(cfg: ConfigPrograma, sessoes: Sessao[], hoje: string, janela = 7): Perdido[] {
-  const comRegistro = new Set(sessoes.filter((s) => s.tipo !== 'cardio').map((s) => s.data));
+  // cardio leve e atividade extra (que não substituiu a corrida) não cumprem o treino do dia
+  const comRegistro = new Set(sessoes.filter((s) => s.tipo !== 'cardio' && !(s.tipo === 'atividade' && !s.atividade?.substituiuCorrida)).map((s) => s.data));
   const out: Perdido[] = [];
   for (let i = janela; i >= 1; i--) {
     const data = somarDias(hoje, -i);

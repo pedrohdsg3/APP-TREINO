@@ -9,6 +9,7 @@ import { dataPorExtenso, formatarData } from '../lib/datas';
 import { Chip } from './Componentes';
 import { IcHalter, IcRelogio, IcTenis } from './Icones';
 import { Folha } from './Folha';
+import { infoModalidade } from '../data/atividades';
 import { Tutorial } from './Tutorial';
 
 export function BarraFases({ corrida }: { corrida: CorridaPlanejada }) {
@@ -119,7 +120,7 @@ export function DetalheDia({ data, plano }: { data: string; plano: DiaPlanejado 
           {sessoes.map((s) => (
             <li key={s.id} className="realizado">
               <span>
-                {s.tipo === 'cardio' ? '🚶 Cardio leve' : s.tipo === 'corrida' ? (s.treinoId === 'livre' ? '🏃 Corrida livre' : '🏃 Corrida') : '💪 Musculação'} · {STATUS[s.status]}
+                {s.tipo === 'atividade' ? `${infoModalidade(s.atividade?.modalidade ?? 'Atividade').emoji} ${s.atividade?.modalidade ?? 'Atividade'}${s.atividade?.substituiuCorrida ? ' (no lugar da corrida)' : ''}` : s.tipo === 'cardio' ? '🚶 Cardio leve' : s.tipo === 'corrida' ? (s.treinoId === 'livre' ? '🏃 Corrida livre' : '🏃 Corrida') : '💪 Musculação'} · {STATUS[s.status]}
                 {s.duracaoSeg ? ` · ${formatarDuracao(s.duracaoSeg)}` : ''}{s.esforco ? ` · esforço ${s.esforco}/10` : ''}
               </span>
               {excluir === s.id ? (

@@ -6,6 +6,8 @@ import { IcBalanca, IcChama, IcHalter, IcPlay, IcRelogio, IcTenis, IcTrofeu } fr
 import { Folha } from '../ui/Folha';
 import { AvatarPerfil } from '../ui/Personagem';
 import { CardTreinoPerdido } from '../ui/CardTreinoPerdido';
+import { RegistrarAtividade } from '../ui/RegistrarAtividade';
+import { infoModalidade } from '../data/atividades';
 import { BarraFases, DetalheDia } from '../ui/DetalheDia';
 import { dataPorExtenso, formatarData, isoLocal, saudacao, somarDias, diasEntre } from '../lib/datas';
 import { useConfigPrograma } from '../lib/ajustes';
@@ -29,6 +31,8 @@ export function Hoje({ aoIniciar, aoCorridaLivre, aoTrocarPerfil }: { aoIniciar:
   const sessoes = useLiveQuery(() => db.sessoes.toArray(), []) ?? [];
   const peso = useLiveQuery(() => db.corpo.orderBy('data').reverse().filter((r) => r.peso != null).first(), []);
   const [detalhe, setDetalhe] = useState<{ data: string; plano: DiaPlanejado } | null>(null);
+  const [atividade, setAtividade] = useState(false);
+  const [msgAtividade, setMsgAtividade] = useState<string | null>(null);
   if (!cfg) return <div className="tela" />;
 
   const pos = posicao(cfg, hoje);
@@ -44,13 +48,17 @@ export function Hoje({ aoIniciar, aoCorridaLivre, aoTrocarPerfil }: { aoIniciar:
   const ultima = ultimaSessao(sessoes, hoje);
   const doDia = sessoes.filter((s) => s.data === hoje && s.status !== 'pulado');
   const tipoPrincipal = plano?.corrida?.tipo === 'cardio' ? 'cardio' : (plano?.tipoPrincipal ?? 'musculacao');
-  const principalFeito = doDia.some((s) => s.tipo === tipoPrincipal && s.status === 'feito');
+  // corrida trocada por outra atividade (basquete, vôlei…) também cumpre o dia
+  const troca = tipoPrincipal === 'corrida' ? doDia.find((s) => s.tipo === 'atividade' && s.atividade?.substituiuCorrida) : undefined;
+  const principalFeito = !!troca || doDia.some((s) => s.tipo === tipoPrincipal && s.status === 'feito');
+  const diaDeCorrida = !!plano?.corrida && plano.corrida.tipo !== 'cardio' && !plano.descanso;
   const extraFeito = doDia.some((s) => s.tipo === 'musculacao' && s.status === 'feito');
   const cardioFeito = doDia.some((s) => s.tipo === 'cardio' && s.status === 'feito');
   const temExtra = !!(plano?.corrida && plano.musculacao);
   const cor = plano?.tipoPrincipal === 'corrida' ? 'corr' : 'musc';
   const rotuloPrincipal = plano?.descanso ? 'Iniciar cardio leve (opcional)' : temExtra ? 'Iniciar corrida' : 'Iniciar treino';
-  const rotuloFeito = plano?.descanso ? 'Cardio leve concluído ✅' : temExtra ? 'Corrida concluída ✅' : 'Treino de hoje concluído ✅';
+  const rotuloFeito = troca ? `${infoModalidade(troca.atividade!.modalidade).emoji} ${troca.atividade!.modalidade} no lugar da corrida ✅`
+    : plano?.descanso ? 'Cardio leve concluído ✅' : temExtra ? 'Corrida concluída ✅' : 'Treino de hoje concluído ✅';
 
   return (
     <div className="tela">
@@ -88,6 +96,9 @@ export function Hoje({ aoIniciar, aoCorridaLivre, aoTrocarPerfil }: { aoIniciar:
           {pos.estado === 'antes' ? null : principalFeito
             ? <Botao grande variante="secundario" onClick={() => setDetalhe({ data: dataTreino, plano })}>{rotuloFeito}</Botao>
             : <Botao grande cor={plano.descanso ? 'corr' : cor} variante={plano.descanso ? 'secundario' : 'primario'} icone={<IcPlay tamanho={20} />} onClick={() => aoIniciar(plano, 'principal')}>{rotuloPrincipal}</Botao>}
+          {pos.estado !== 'antes' && diaDeCorrida && !principalFeito && (
+            <Botao variante="secundario" icone={<span aria-hidden="true">🏀</span>} onClick={() => setAtividade(true)}>Trocar por outra atividade</Botao>
+          )}
           {pos.estado !== 'antes' && temExtra && (extraFeito
             ? <p className="sutil centro">Abdômen concluído ✅</p>
             : <Botao variante="secundario" icone={<IcHalter tamanho={18} />} onClick={() => aoIniciar(plano, 'musculacao')}>Iniciar abdômen (~{plano.musculacao!.minutos} min)</Botao>)}
@@ -138,6 +149,17 @@ export function Hoje({ aoIniciar, aoCorridaLivre, aoTrocarPerfil }: { aoIniciar:
         <span className="extra__texto"><strong>Corrida livre</strong><span>Cronômetro simples, fora do plano</span></span>
         <span aria-hidden="true">›</span>
       </button>
+
+      <button className="extra entra" onClick={() => setAtividade(true)}>
+        <span className="extra__icone extra__icone--esporte" aria-hidden="true">🏐</span>
+        <span className="extra__texto"><strong>Registrar outra atividade</strong><span>Basquete, vôlei, futebol… (hoje ou dias anteriores)</span></span>
+        <span aria-hidden="true">›</span>
+      </button>
+      {msgAtividade && <p className="nota-recup entra" role="status">✅ {msgAtividade}</p>}
+
+      <Folha aberta={atividade} aoFechar={() => setAtividade(false)} titulo="Outra atividade">
+        {atividade && <RegistrarAtividade aoCancelar={() => setAtividade(false)} aoSalvar={(m) => { setAtividade(false); setMsgAtividade(m); setTimeout(() => setMsgAtividade(null), 4000); }} />}
+      </Folha>
 
       <Folha aberta={!!detalhe} aoFechar={() => setDetalhe(null)} titulo="Treino do dia">
         {detalhe && <DetalheDia data={detalhe.data} plano={detalhe.plano} />}

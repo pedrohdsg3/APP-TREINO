@@ -83,6 +83,14 @@ describe('treino perdido', () => {
     expect(r.avisos.join(' ')).toContain('intervalado');
   });
 
+  it('basquete no lugar da corrida cumpre o dia; como extra, a corrida continua pendente', () => {
+    const base = [feito('2026-11-09')];
+    const troca: Sessao = { id: 'b', data: '2026-11-10', tipo: 'atividade', status: 'feito', atividade: { modalidade: 'Basquete', intensidade: 'alta', substituiuCorrida: true } };
+    expect(recomendar(cfg, [...base, troca], '2026-11-11')).toBeNull();
+    const extra: Sessao = { ...troca, atividade: { ...troca.atividade!, substituiuCorrida: false } };
+    expect(recomendar(cfg, [...base, extra], '2026-11-11')?.alvo.data).toBe('2026-11-10');
+  });
+
   it('regra 6: pular marca como pulado e o aviso some', () => {
     const r = recomendar(cfg, [], '2026-11-10')!;
     const { pulados } = aplicarAcao(cfg, r, { tipo: 'pular', rotulo: '' }, '2026-11-10');

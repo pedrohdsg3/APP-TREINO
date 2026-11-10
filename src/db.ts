@@ -5,7 +5,7 @@ import Dexie, { type EntityTable } from 'dexie';
 export interface Sessao {
   id: string;
   data: string; // aaaa-mm-dd
-  tipo: 'musculacao' | 'corrida' | 'cardio';
+  tipo: 'musculacao' | 'corrida' | 'cardio' | 'atividade';
   diaPlanejado?: string;
   status: 'feito' | 'pulado' | 'parcial';
   duracaoSeg?: number;
@@ -23,6 +23,8 @@ export interface Sessao {
   /** início/fim (timestamps) */
   inicioTs?: number;
   fimTs?: number;
+  /** outra atividade (basquete, vôlei…), opcionalmente no lugar da corrida do dia */
+  atividade?: { modalidade: string; intensidade: 'leve' | 'moderada' | 'alta'; dorJoelho?: number; substituiuCorrida?: boolean };
 }
 export interface RegistroSerie {
   id?: number;

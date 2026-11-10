@@ -19,6 +19,7 @@ import { dataPorExtenso, diasEntre, formatarData, isoLocal, somarDias } from '..
 import { fmtRelogio } from '../lib/ganchos';
 import { Botao, Card, EstadoVazio, Segmentado } from '../ui/Componentes';
 import { Folha } from '../ui/Folha';
+import { infoModalidade } from '../data/atividades';
 import { GraficoBarras, GraficoLinha, rotuloSemana } from '../ui/Graficos';
 import { IlustraGrafico, IlustraHalterCorrida } from '../ui/Ilustracoes';
 
@@ -368,7 +369,7 @@ function AbaForca({ d, inicio, semanas }: { d: Dados; inicio: string; semanas: n
 
 // ============================================================ CORRIDA
 function AbaCorrida({ d, inicio, semanas }: { d: Dados; inicio: string; semanas: number }) {
-  if (!d.corridas.length && !d.cardios.length) {
+  if (!d.corridas.length && !d.cardios.length && !d.sessoes.some((x) => x.tipo === 'atividade')) {
     return <EstadoVazio ilustracao={<IlustraGrafico />} titulo="Sem corridas ainda" texto="Depois da primeira corrida você vê distância, tempo trotando, pace e a dor no joelho ao longo das semanas." />;
   }
   const atual = semanaAtualIdx(inicio, semanas);
@@ -405,6 +406,8 @@ function AbaCorrida({ d, inicio, semanas }: { d: Dados; inicio: string; semanas:
         <GraficoBarras titulo="Minutos por semana" cor="corr" destaque={atual} formatar={(v) => num(v, 0)}
           barras={minSem.map((v, i) => ({ rotulo: rotuloSemana(i), valor: v, detalhe: `Semana ${i + 1}` }))} />
       </Card>
+
+      {d.sessoes.some((x) => x.tipo === 'atividade') && <OutrasAtividades sessoes={d.sessoes.filter((x) => x.tipo === 'atividade')} />}
 
       {d.cardios.length > 0 && (
         <Card>
@@ -555,3 +558,25 @@ function AbaCorpo({ corpo, pesoAlvo }: { corpo: RegistroCorpo[]; pesoAlvo?: numb
   );
 }
 
+
+function OutrasAtividades({ sessoes }: { sessoes: Sessao[] }) {
+  const por = new Map<string, { n: number; min: number; trocas: number }>();
+  for (const s of sessoes) {
+    const k = s.atividade?.modalidade ?? 'Atividade';
+    const x = por.get(k) ?? { n: 0, min: 0, trocas: 0 };
+    por.set(k, { n: x.n + 1, min: x.min + (s.duracaoSeg ?? 0) / 60, trocas: x.trocas + (s.atividade?.substituiuCorrida ? 1 : 0) });
+  }
+  return (
+    <Card>
+      <h3 className="card__titulo">🏀 Outras atividades</h3>
+      <ul className="recordes">
+        {[...por.entries()].sort((a, b) => b[1].min - a[1].min).map(([nome, x]) => (
+          <li key={nome}>
+            <div><strong>{infoModalidade(nome).emoji} {nome}</strong><span>{x.n}× {x.trocas ? `· ${x.trocas} no lugar da corrida` : ''}</span></div>
+            <div className="dir"><strong className="num">{num(x.min, 0)} min</strong></div>
+          </li>
+        ))}
+      </ul>
+    </Card>
+  );
+}

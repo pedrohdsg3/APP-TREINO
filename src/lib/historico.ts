@@ -97,3 +97,18 @@ export function baixarTreinoEmAndamento(dados: unknown, nome: string) {
     setTimeout(() => URL.revokeObjectURL(url), 2000);
   } catch { /* ignora */ }
 }
+
+// ---------------------------------------------------------------- outras atividades
+export async function salvarAtividade(a: {
+  data: string; modalidade: string; duracaoMin: number; intensidade: 'leve' | 'moderada' | 'alta'; esforco?: number;
+  dorJoelho?: number; notas?: string; substituiuCorrida: boolean; semana?: number;
+}): Promise<Sessao> {
+  const sessao: Sessao = {
+    id: novoId(), data: a.data, tipo: 'atividade', status: 'feito', duracaoSeg: Math.round(a.duracaoMin * 60), esforco: a.esforco,
+    notas: a.notas?.trim() || undefined, semana: a.semana, treinoId: a.substituiuCorrida ? 'troca-corrida' : 'atividade-extra',
+    atividade: { modalidade: a.modalidade, intensidade: a.intensidade, dorJoelho: a.dorJoelho, substituiuCorrida: a.substituiuCorrida },
+    inicioTs: Date.now(), fimTs: Date.now(),
+  };
+  await comRetentativa(() => db.sessoes.put(sessao));
+  return sessao;
+}
