@@ -1114,3 +1114,7 @@ strong, .num { font-variant-numeric: tabular-nums; }
 .conta__sair p { font-size: 14px; color: var(--texto-2); }
 .carregando { width: 32px; height: 32px; border-radius: 50%; border: 3px solid var(--superficie-2); border-top-color: var(--texto-2); animation: gira 0.8s linear infinite; }
 @keyframes gira { to { transform: rotate(360deg); } }
+.login__email { margin-top: 10px; }
+.login__ver { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--texto-2); }
+.login__ok { font-size: 14px; color: var(--texto-2); background: var(--superficie-2); padding: 10px 12px; border-radius: 12px; }
+#form-email .link { align-self: flex-start; padding: 0; }

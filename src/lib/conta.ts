@@ -57,6 +57,22 @@ export async function entrarComGoogle(): Promise<Conta | null> {
   }
 }
 
+/** Entrar com e-mail e senha (ou criar a conta). */
+export async function entrarComEmail(email: string, senha: string, criar = false): Promise<Conta> {
+  const { auth, a } = await firebase();
+  const r = criar
+    ? await auth.createUserWithEmailAndPassword(a, email.trim(), senha)
+    : await auth.signInWithEmailAndPassword(a, email.trim(), senha);
+  const c = deUsuario(r.user); guardarConta(c); definirSemConta(false); return c;
+}
+
+/** Manda o e-mail do Firebase para criar uma senha nova. */
+export async function redefinirSenha(email: string) {
+  const { auth, a } = await firebase();
+  auth.useDeviceLanguage(a);
+  await auth.sendPasswordResetEmail(a, email.trim());
+}
+
 export async function sairDaConta() {
   pararSync();
   const { auth, a } = await firebase();
