@@ -10,7 +10,7 @@ export type Acao = 'parado' | 'aceno' | 'halter' | 'corrida' | 'comemora';
 // Yana: raiz castanha com comprimento mel/loiro (luzes) e sorriso aberto.
 const PALETA = {
   pedro: { pele: '#F6D3B8', peleSombra: '#E9B897', pescoco: '#EFC6A8', cabelo: '#3B2A1F', barba: '#4A3427', fundo1: '#E3E6FF', fundo2: '#C9CEFF', roupa: '#1C1F2A', roupaDetalhe: '#4F46E5' },
-  yana: { pele: '#F7D7C0', peleSombra: '#EBBE9F', pescoco: '#F0CBB0', cabelo: '#4A3020', cabeloMeio: '#9A6C3E', cabeloPonta: '#E7C285', fundo1: '#FFE4EC', fundo2: '#FFC9D9', roupa: '#EC6A98', roupaDetalhe: '#F9A8C4' },
+  yana: { pele: '#E3B28C', peleSombra: '#CF9870', pescoco: '#D9A67F', cabelo: '#4A3020', cabeloMeio: '#9A6C3E', cabeloPonta: '#E7C285', fundo1: '#FFE4EC', fundo2: '#FFC9D9', roupa: '#EC6A98', roupaDetalhe: '#F9A8C4' },
 } as const;
 
 export function Personagem({ quem, tamanho = 64, acao = 'parado', className = '' }: { quem: IdPersonagem; tamanho?: number; acao?: Acao; className?: string }) {
@@ -115,12 +115,13 @@ function RostoPedro({ c }: { c: typeof PALETA.pedro }) {
       <path d="M46 31 C52 28.5 60 27.8 67 28.6" fill="none" stroke="#5A4232" strokeWidth="1.2" strokeLinecap="round" opacity="0.8" />
       <path d="M38 50 C37.6 54 38 57 39 59.5 L41 59 C40.4 55.6 40.3 52 41 48.5 Z" fill={c.cabelo} opacity="0.4" />
       <path d="M82 50 C82.4 54 82 57 81 59.5 L79 59 C79.6 55.6 79.7 52 79 48.5 Z" fill={c.cabelo} opacity="0.4" />
-      {/* barba curta e rala no maxilar + cavanhaque e bigode aparados */}
-      <path d="M39.4 60 C40.5 72 47 80.5 55 83 C57 83.8 58.5 84.2 60 84.2 C61.5 84.2 63 83.8 65 83 C73 80.5 79.5 72 80.6 60 C79.6 66.5 76.5 72.5 71.5 75.5 C66.5 78.2 53.5 78.2 48.5 75.5 C43.5 72.5 40.4 66.5 39.4 60 Z" fill={c.barba} opacity="0.5" />
-      <path d="M54.2 76.6 C55 81.2 57.3 83.6 60 83.6 C62.7 83.6 65 81.2 65.8 76.6 C63 78 57 78 54.2 76.6 Z" fill={c.barba} opacity="0.85" />
-      <path d="M53 69.2 C55.8 67.4 64.2 67.4 67 69.2 C64 69.9 56 69.9 53 69.2 Z" fill={c.barba} opacity="0.85" />
+      {/* barba completa, curta e bem alinhada: maxilar, queixo e bigode num tom só */}
+      <g fill={c.barba} opacity="0.62">
+        <path d="M39.6 63 C40.8 73.5 47.4 81.6 55 84 C57 84.7 58.5 84.9 60 84.9 C61.5 84.9 63 84.7 65 84 C72.6 81.6 79.2 73.5 80.4 63 C79 66.8 76.6 69.4 73.2 70.4 C69.4 71.4 50.6 71.4 46.8 70.4 C43.4 69.4 41 66.8 39.6 63 Z" />
+        <path d="M52.4 69.6 C55.8 67.4 64.2 67.4 67.6 69.6 C64.2 70.7 55.8 70.7 52.4 69.6 Z" />
+      </g>
       {/* sorriso de boca fechada, meio de lado */}
-      <path className="personagem__boca" d="M54.8 72.4 Q60.8 75.4 66.2 71.6" fill="none" stroke="#C67F6B" strokeWidth="1.8" strokeLinecap="round" />
+      <path className="personagem__boca" d="M54.8 72.4 Q60.8 75.4 66.2 71.6" fill="none" stroke="#E2A391" strokeWidth="1.9" strokeLinecap="round" />
       <Nariz cor={c.peleSombra} />
       {/* sobrancelhas */}
       <path d="M45.2 48.6 Q50.5 46.4 55.6 48" fill="none" stroke={c.cabelo} strokeWidth="2.1" strokeLinecap="round" />
@@ -153,8 +154,8 @@ function RostoYana({ c, gradiente }: { c: typeof PALETA.yana; gradiente: string 
       <path d="M47.9 54.6 Q46.6 53.9 46 52.9 M72.1 54.6 Q73.4 53.9 74 52.9" fill="none" stroke="#1E1A17" strokeWidth="1.1" strokeLinecap="round" />
       <Nariz cor={c.peleSombra} />
       {/* bochechas */}
-      <ellipse cx="45.5" cy="64.5" rx="4.4" ry="2.6" fill="#F49C9C" opacity="0.42" />
-      <ellipse cx="74.5" cy="64.5" rx="4.4" ry="2.6" fill="#F49C9C" opacity="0.42" />
+      <ellipse cx="45.5" cy="64.5" rx="4.4" ry="2.6" fill="#E2827A" opacity="0.38" />
+      <ellipse cx="74.5" cy="64.5" rx="4.4" ry="2.6" fill="#E2827A" opacity="0.38" />
       {/* sorriso aberto, mostrando os dentes */}
       <g className="personagem__boca">
         <path d="M51.2 68.2 Q60 80 68.8 68.2 Q60 70.4 51.2 68.2 Z" fill="#B8394B" />
