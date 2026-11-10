@@ -58,11 +58,11 @@ export function Personagem({ quem, tamanho = 64, acao = 'parado', className = ''
           {/* pescoço */}
           <path d="M51 74 L51 90 C55 94 65 94 69 90 L69 74 Z" fill={c.pescoco} />
           {/* orelhas */}
-          <circle cx="37.5" cy="58" r="5" fill={c.peleSombra} />
-          <circle cx="82.5" cy="58" r="5" fill={c.peleSombra} />
+          <circle cx={quem === 'pedro' ? 40.2 : 37.5} cy="58" r={quem === 'pedro' ? 4.6 : 5} fill={c.peleSombra} />
+          <circle cx={quem === 'pedro' ? 79.8 : 82.5} cy="58" r={quem === 'pedro' ? 4.6 : 5} fill={c.peleSombra} />
           {/* rosto */}
           {quem === 'pedro'
-            ? <path d="M38 52 C38 36 47 30 60 30 C73 30 82 36 82 52 C82 66 78 77 70 81.5 C66 83.8 63 84.5 60 84.5 C57 84.5 54 83.8 50 81.5 C42 77 38 66 38 52 Z" fill={c.pele} />
+            ? <path d="M40.5 50 C40.5 35.5 48.8 28.5 60 28.5 C71.2 28.5 79.5 35.5 79.5 50 C79.5 62.5 78.4 71.5 74.4 77.6 C70.8 82.8 65.6 86 60 86 C54.4 86 49.2 82.8 45.6 77.6 C41.6 71.5 40.5 62.5 40.5 50 Z" fill={c.pele} />
             : <ellipse cx="60" cy="55.5" rx="21.5" ry="24.5" fill={c.pele} />}
 
           {quem === 'pedro' ? <RostoPedro c={PALETA.pedro} /> : <RostoYana c={PALETA.yana} gradiente={`url(#h${uid})`} />}
@@ -111,13 +111,13 @@ function RostoPedro({ c }: { c: typeof PALETA.pedro }) {
   return (
     <g>
       {/* cabelo curto: mais volume em cima, laterais baixas (degradê) */}
-      <path d="M38.2 51 C37 34 47 25.5 61 25.5 C75 25.5 84.5 33.5 82 51 C80.5 44 77 39.5 71 37.6 C64 35.6 55 35.8 49 37.8 C43.5 39.8 40 44.5 38.2 51 Z" fill={c.cabelo} />
+      <path d="M40.4 50.5 C39 34 48 24.5 60.5 24.5 C73.5 24.5 82 33 79.6 50.5 C78.6 43.6 75.6 39.2 70.6 37.2 C64 35 56 35.2 50 37.4 C45 39.4 41.8 44 40.4 50.5 Z" fill={c.cabelo} />
       <path d="M46 31 C52 28.5 60 27.8 67 28.6" fill="none" stroke="#5A4232" strokeWidth="1.2" strokeLinecap="round" opacity="0.8" />
-      <path d="M38 50 C37.6 54 38 57 39 59.5 L41 59 C40.4 55.6 40.3 52 41 48.5 Z" fill={c.cabelo} opacity="0.4" />
-      <path d="M82 50 C82.4 54 82 57 81 59.5 L79 59 C79.6 55.6 79.7 52 79 48.5 Z" fill={c.cabelo} opacity="0.4" />
+      <path d="M40.4 49.5 C40.1 53.5 40.4 56.5 41.2 59 L43 58.6 C42.5 55.2 42.4 52 43 48.5 Z" fill={c.cabelo} opacity="0.4" />
+      <path d="M79.6 49.5 C79.9 53.5 79.6 56.5 78.8 59 L77 58.6 C77.5 55.2 77.6 52 77 48.5 Z" fill={c.cabelo} opacity="0.4" />
       {/* barba completa, curta e bem alinhada: maxilar, queixo e bigode num tom só */}
       <g fill={c.barba} opacity="0.62">
-        <path d="M39.6 63 C40.8 73.5 47.4 81.6 55 84 C57 84.7 58.5 84.9 60 84.9 C61.5 84.9 63 84.7 65 84 C72.6 81.6 79.2 73.5 80.4 63 C79 66.8 76.6 69.4 73.2 70.4 C69.4 71.4 50.6 71.4 46.8 70.4 C43.4 69.4 41 66.8 39.6 63 Z" />
+        <path d="M41.2 63 C42.2 70.5 43.6 74.6 45.6 77.6 C49.2 82.8 54.4 86 60 86 C65.6 86 70.8 82.8 74.4 77.6 C76.4 74.6 77.8 70.5 78.8 63 C77.6 66.8 75.6 69.4 72.6 70.4 C69 71.4 51 71.4 47.4 70.4 C44.4 69.4 42.4 66.8 41.2 63 Z" />
         <path d="M52.4 69.6 C55.8 67.4 64.2 67.4 67.6 69.6 C64.2 70.7 55.8 70.7 52.4 69.6 Z" />
       </g>
       {/* sorriso de boca fechada, meio de lado */}
@@ -132,7 +132,7 @@ function RostoPedro({ c }: { c: typeof PALETA.pedro }) {
         <circle cx="51" cy="56" r="7.2" />
         <circle cx="69" cy="56" r="7.2" />
       </g>
-      <path d="M58.2 55.4 Q60 54 61.8 55.4 M43.8 55 L38.6 53.6 M76.2 55 L81.4 53.6" fill="none" stroke="#1F1A17" strokeWidth="1.6" strokeLinecap="round" />
+      <path d="M58.2 55.4 Q60 54 61.8 55.4 M43.8 55 L40.6 54.2 M76.2 55 L79.4 54.2" fill="none" stroke="#1F1A17" strokeWidth="1.6" strokeLinecap="round" />
     </g>
   );
 }
