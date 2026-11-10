@@ -49,9 +49,13 @@ describe('mesclar participantes', () => {
     const r = mesclar([{ ...pedro, feitos: ['2026-11-09'] }, yana], [colada, onlineYana], 'p');
     expect(r[1].id).toBe('nuvem-y');
   });
-  it('perfil local com treinos não é substituído', () => {
-    const r = mesclar([{ ...yana, feitos: ['2026-11-17'] }], [onlineYana], 'outro');
+  it('meu próprio perfil local nunca é substituído', () => {
+    const r = mesclar([{ ...yana, feitos: ['2026-11-17'] }], [onlineYana], 'outro', 'yana');
     expect(r).toHaveLength(1);
     expect(r[0].id).toBe('yana');
+  });
+  it('perfil local de OUTRA pessoa com treinos perde para o placar online dela', () => {
+    const r = mesclar([{ ...pedro, feitos: ['2026-11-09'] }, { ...yana, feitos: ['2026-11-09'] }], [onlineYana], 'p', 'pedro');
+    expect(r[1].id).toBe('nuvem-y');
   });
 });

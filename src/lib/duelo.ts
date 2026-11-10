@@ -34,7 +34,7 @@ export function removerExterno(id: string) {
 /** Participantes locais + placares colados (os online chegam pela escuta da sala). */
 export async function carregarParticipantes(online: Participante[] = [], meuUid?: string): Promise<Participante[]> {
   const locais = await Promise.all(listarPerfis().map(participanteDoPerfil));
-  return mesclar(locais, [...online, ...lerExternos()], meuUid);
+  return mesclar(locais, [...online, ...lerExternos()], meuUid, perfilAtual().id);
 }
 
 /** Publica o placar do perfil ativo no duelo online (se houver sala). */

@@ -18,6 +18,7 @@ import { lerCorridaAtiva, montarCorrida, type CorridaAtiva } from './engine/corr
 import { ativarPerfil, listarPerfis, perfilComTreinoEmAndamento, type Perfil as TPerfil } from './lib/perfis';
 import { EscolherPerfil } from './screens/EscolherPerfil';
 import { publicarAtual } from './lib/duelo';
+import { aplicarCorrecoes } from './lib/correcoes';
 
 /** Perfil inicial: quem tem treino em andamento; senão, se só existe um, ele; senão, a tela de escolha. */
 function perfilInicial(): TPerfil | null {
@@ -65,7 +66,7 @@ function AppDoPerfil({ aoTrocarPerfil }: { aoTrocarPerfil: () => void }) {
   };
 
   // mantém o placar online em dia ao abrir o perfil
-  useEffect(() => { void publicarAtual(); }, []);
+  useEffect(() => { void aplicarCorrecoes().then(() => publicarAtual()); }, []);
 
   function trocar(nova: Aba) {
     if (nova === aba) { principal.current?.scrollTo({ top: 0, behavior: 'smooth' }); return; }

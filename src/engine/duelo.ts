@@ -28,7 +28,11 @@ export interface Participante {
  * - Um placar de fora com o mesmo nome de um perfil local SEM treinos substitui o local
  *   (ex.: o perfil "Yana" vazio no celular do Pedro). Online tem prioridade sobre colado.
  */
-export function mesclar(locais: Participante[], deFora: Participante[], meuUid?: string): Participante[] {
+/**
+ * meuPerfilId: perfil ativo neste aparelho (o "dono"). Para os OUTROS perfis locais, um placar
+ * ONLINE com o mesmo nome sempre vence (é a fonte real do celular da outra pessoa).
+ */
+export function mesclar(locais: Participante[], deFora: Participante[], meuUid?: string, meuPerfilId?: string): Participante[] {
   const fora = deFora
     .filter((p) => !(p.online && p.uid === meuUid))
     .sort((a, b) => Number(!!b.online) - Number(!!a.online)); // online primeiro
@@ -38,6 +42,8 @@ export function mesclar(locais: Participante[], deFora: Participante[], meuUid?:
     const f = fora.find((x) => !usados.has(x) && mesmo(x, l));
     if (!f) return l;
     usados.add(f);
+    if (l.id === meuPerfilId) return l; // eu mesmo: o local é a verdade
+    if (f.online) return f; // outra pessoa: o placar online é a verdade
     return l.feitos.length === 0 && l.cardios.length === 0 ? f : l;
   });
   for (const f of fora) if (!usados.has(f) && !out.some((o) => mesmo(o, f))) { out.push(f); usados.add(f); }
