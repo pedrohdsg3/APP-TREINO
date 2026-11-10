@@ -8,6 +8,8 @@ import { orientacaoCorrida, orientacaoFase, formatarDuracao, prescricao, type Co
 import { dataPorExtenso, formatarData } from '../lib/datas';
 import { Chip } from './Componentes';
 import { IcHalter, IcRelogio, IcTenis } from './Icones';
+import { Folha } from './Folha';
+import { Tutorial } from './Tutorial';
 
 export function BarraFases({ corrida }: { corrida: CorridaPlanejada }) {
   return (
@@ -55,6 +57,7 @@ function BlocoCardio({ c, extra }: { c: CorridaPlanejada; extra?: boolean }) {
 }
 
 function BlocoMusculacao({ m, pct }: { m: MusculacaoPlanejada; pct: number }) {
+  const [tutorial, setTutorial] = useState<string | null>(null);
   return (
     <div className="bloco-plano">
       <div className="bloco-plano__topo">
@@ -68,15 +71,18 @@ function BlocoMusculacao({ m, pct }: { m: MusculacaoPlanejada; pct: number }) {
           return (
             <li key={it.exercicioId + i}>
               <span className="lista-exercicios__num">{i + 1}</span>
-              <div className="lista-exercicios__info">
+              <button className="lista-exercicios__info lista-exercicios__info--botao" onClick={() => setTutorial(it.exercicioId)} aria-label={`Como fazer: ${ex.nome}`}>
                 <strong>{ex.nome}</strong>
-                <span>{ex.grupo} · descanso {it.descanso} s</span>
-              </div>
+                <span>{ex.grupo} · descanso {it.descanso} s · <u>como fazer</u></span>
+              </button>
               <span className="lista-exercicios__presc">{prescricao(it)}</span>
             </li>
           );
         })}
       </ol>
+      <Folha aberta={!!tutorial} aoFechar={() => setTutorial(null)} titulo="Como fazer">
+        {tutorial && <Tutorial exercicioId={tutorial} />}
+      </Folha>
     </div>
   );
 }

@@ -21,6 +21,7 @@ import { Stepper } from '../ui/Stepper';
 import { Confete } from '../ui/Confete';
 import { IcHalter, IcTrofeu } from '../ui/Icones';
 import { Escala } from '../ui/Escala';
+import { Tutorial } from '../ui/Tutorial';
 import { Personagem, Saudacao } from '../ui/Personagem';
 import { perfilAtual } from '../lib/perfis';
 import type { Sessao } from '../db';
@@ -172,6 +173,7 @@ function Exercicios({ t, atualizar, agora, aoSair, aoPR }: PropsEtapa & { agora:
   const [trocar, setTrocar] = useState(false);
   const [nota, setNota] = useState(false);
   const [mostraDica, setMostraDica] = useState(false);
+  const [tutorial, setTutorial] = useState(false);
 
   // ao trocar de exercício, recolhe a dica
   useEffect(() => { setMostraDica(false); setEditar(null); }, [t.atual, t.exercicios[t.atual]?.item.exercicioId]); // eslint-disable-line react-hooks/exhaustive-deps
@@ -222,9 +224,12 @@ function Exercicios({ t, atualizar, agora, aoSair, aoPR }: PropsEtapa & { agora:
             {e.item.cargaPct < 100 && <span className="sutil"> · carga ~{e.item.cargaPct}%</span>}
           </p>
           {e.planejado !== e.item.exercicioId && <p className="sutil">Substituindo {EXERCICIOS[e.planejado].nome}</p>}
-          <button className="dica" onClick={() => setMostraDica((v) => !v)} aria-expanded={mostraDica}>
-            💡 {mostraDica ? ex.dica : 'Dica técnica'}
-          </button>
+          <div className="dica-linha">
+            <button className="dica" onClick={() => setMostraDica((v) => !v)} aria-expanded={mostraDica}>
+              💡 {mostraDica ? ex.dica : 'Dica técnica'}
+            </button>
+            {!mostraDica && <button className="dica dica--tutorial" onClick={() => setTutorial(true)}>📖 Como fazer</button>}
+          </div>
           {ant ? (
             <div className={`ultima ${e.sugestao?.subir ? 'ultima--subir' : ''}`}>
               <span className="ultima__rotulo">Última vez{e.anteriorData ? ` · ${formatarData(e.anteriorData)}` : ''}</span>
@@ -352,6 +357,10 @@ function Exercicios({ t, atualizar, agora, aoSair, aoPR }: PropsEtapa & { agora:
             }}>Marcar como não feita</button>
           </div>
         )}
+      </Folha>
+
+      <Folha aberta={tutorial} aoFechar={() => setTutorial(false)} titulo="Como fazer">
+        {tutorial && <Tutorial exercicioId={e.item.exercicioId} />}
       </Folha>
 
       <TrocarExercicio aberto={trocar} fechar={() => setTrocar(false)} t={t} atualizar={atualizar} />
