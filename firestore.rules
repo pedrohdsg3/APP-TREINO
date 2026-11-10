@@ -1,10 +1,19 @@
 rules_version = '2';
-// Regras do duelo online. Cole em: Firebase Console → Firestore Database → Regras → Publicar.
+// Regras do app. Cole em: Firebase Console → Firestore Database → Regras → Publicar.
+// - usuarios/{uid}: perfil e treinos de cada conta Google. SÓ o dono lê e escreve.
 // - Cada sala de duelo tem um código de 8 caracteres (só quem tem o código encontra a sala).
 // - Cada pessoa só escreve o PRÓPRIO placar (documento com o id do seu login anônimo).
 // - O placar só tem nome, avatar, plano, data de início e as datas em que treinou.
 service cloud.firestore {
   match /databases/{database}/documents {
+    match /usuarios/{uid} {
+      allow read, write: if request.auth != null && request.auth.uid == uid;
+      match /{colecao}/{doc} {
+        allow read, write: if request.auth != null && request.auth.uid == uid
+          && colecao in ['sessoes', 'corpo', 'ajustes'];
+      }
+    }
+
     match /duelos/{sala} {
       allow get: if request.auth != null;
       allow create: if request.auth != null

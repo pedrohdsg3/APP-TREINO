@@ -15,6 +15,8 @@ export interface Perfil {
   inicio?: string;
   /** personagem ilustrado (senão usa o emoji) */
   personagem?: 'pedro' | 'yana';
+  /** conta Google ligada a este perfil (dados sincronizados na nuvem) */
+  uid?: string;
 }
 
 const CHAVE = 'treino.perfis';

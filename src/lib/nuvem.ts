@@ -1,30 +1,20 @@
-// Duelo online (Firebase): login anônimo + Firestore. O SDK é carregado só quando usado.
+// Duelo online (Firebase): conta logada (ou anônima) + Firestore. O SDK é carregado só quando usado.
 // O que vai para a nuvem: nome, avatar, plano, data de início e as DATAS em que treinou.
 // Cargas, peso, corridas e notas continuam só no aparelho.
 import type { Participante } from '../engine/duelo';
 import { FIREBASE_CONFIG } from './firebaseConfig';
+import { firebase, usuarioAtual } from './firebase';
 import { chaveLocal, type Perfil } from './perfis';
 
 export const nuvemConfigurada = () => !!FIREBASE_CONFIG?.apiKey;
 
-type Sdk = {
-  uid: string;
-  fs: typeof import('firebase/firestore');
-  db: import('firebase/firestore').Firestore;
-};
-let sdk: Promise<Sdk> | null = null;
+type Sdk = { uid: string; fs: typeof import('firebase/firestore'); db: import('firebase/firestore').Firestore };
 
-function iniciar(): Promise<Sdk> {
-  if (!FIREBASE_CONFIG) return Promise.reject(new Error('Firebase não configurado.'));
-  sdk ??= (async () => {
-    const [{ initializeApp }, auth, fs] = await Promise.all([import('firebase/app'), import('firebase/auth'), import('firebase/firestore')]);
-    const app = initializeApp(FIREBASE_CONFIG!);
-    const a = auth.getAuth(app);
-    const user = a.currentUser ?? (await new Promise<import('firebase/auth').User | null>((res) => { const off = auth.onAuthStateChanged(a, (u) => { off(); res(u); }); }))
-      ?? (await auth.signInAnonymously(a)).user;
-    return { uid: user.uid, fs, db: fs.getFirestore(app) };
-  })().catch((e) => { sdk = null; throw e; });
-  return sdk;
+/** Usa a conta logada (Google); sem conta, entra anonimamente só para o duelo. */
+async function iniciar(): Promise<Sdk> {
+  const { fs, db, a, auth } = await firebase();
+  const user = (await usuarioAtual()) ?? (await auth.signInAnonymously(a)).user;
+  return { uid: user.uid, fs, db };
 }
 
 // ---------------------------------------------------------------- sala do perfil
@@ -105,3 +95,16 @@ export function ouvirSala(aoMudar: (outros: Participante[], meuUid: string) => v
   }).catch((e) => aoErro?.(e));
   return () => { cancelado = true; parar(); };
 }
+
+/** Entra na sala; se ainda não existir, cria (usado na sala do casal, com código fixo). */
+export async function entrarOuCriarSala(codigo: string): Promise<string> {
+  const { fs, db, uid } = await iniciar();
+  const ref = fs.doc(db, 'duelos', codigo);
+  const s = await fs.getDoc(ref);
+  if (!s.exists()) await fs.setDoc(ref, { criadoEm: fs.serverTimestamp(), criadoPor: uid });
+  definirSala(codigo);
+  return codigo;
+}
+
+/** Sala do duelo do Pedro e da Yana (entram nela automaticamente ao logar). */
+export const SALA_CASAL = 'VWVZMJ9S';

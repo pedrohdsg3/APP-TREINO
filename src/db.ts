@@ -89,10 +89,15 @@ export function criarBanco(nome: string): Banco {
  */
 export let db: Banco = criarBanco('app-treino');
 
+const aoTrocar = new Set<(b: Banco) => void>();
+/** Avisa quando a instância do banco ativo muda (troca de perfil ou reabertura). */
+export function aoTrocarBanco(f: (b: Banco) => void) { aoTrocar.add(f); return () => { aoTrocar.delete(f); }; }
+
 export function abrirBanco(nome: string) {
   if (db.name === nome) return;
   db.close();
   db = criarBanco(nome);
+  aoTrocar.forEach((f) => f(db));
 }
 
 /**
@@ -103,6 +108,7 @@ export async function reabrirBanco() {
   const nome = db.name;
   try { db.close(); } catch { /* já fechado */ }
   db = criarBanco(nome);
+  aoTrocar.forEach((f) => f(db));
   await db.open();
 }
 

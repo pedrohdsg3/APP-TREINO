@@ -307,11 +307,12 @@ export function SecaoPrograma({ aoTrocarPerfil }: { aoTrocarPerfil: () => void }
         {acao === 'apagar' && (
           <div className="detalhe">
             <h2 className="detalhe__titulo">Apagar todos os dados de {perfilAtual().nome}?</h2>
-            <p className="detalhe__orientacao">Treinos, cargas, corridas, peso, metas e ajustes deste perfil neste aparelho serão apagados. Faça um backup antes. Isso não pode ser desfeito.</p>
+            <p className="detalhe__orientacao">Treinos, cargas, corridas, peso, metas e ajustes deste perfil serão apagados{perfilAtual().uid ? ' neste aparelho e na nuvem' : ' neste aparelho'}. Faça um backup antes. Isso não pode ser desfeito.</p>
             <label className="campo"><span>Digite APAGAR para confirmar</span><input value={confirma} onChange={(e) => setConfirma(e.target.value)} /></label>
             <Botao grande className="btn--perigo" disabled={confirma.trim().toUpperCase() !== 'APAGAR'} onClick={async () => {
               await db.transaction('rw', [db.sessoes, db.series, db.corridas, db.corpo, db.ajustes], async () => {
-                await Promise.all([db.sessoes.clear(), db.series.clear(), db.corridas.clear(), db.corpo.clear(), db.ajustes.clear()]);
+                // apaga registro a registro para a exclusão também chegar à nuvem (se houver conta)
+                await Promise.all([db.sessoes.toCollection().delete(), db.series.toCollection().delete(), db.corridas.toCollection().delete(), db.corpo.toCollection().delete(), db.ajustes.toCollection().delete()]);
               });
               setAcao(null); aoTrocarPerfil();
             }}>Apagar tudo</Botao>

@@ -33,7 +33,8 @@ export function removerExterno(id: string) {
 
 /** Participantes locais + placares colados (os online chegam pela escuta da sala). */
 export async function carregarParticipantes(online: Participante[] = [], meuUid?: string): Promise<Participante[]> {
-  const locais = await Promise.all(listarPerfis().map(participanteDoPerfil));
+  // com conta, só o próprio perfil entra daqui (os outros chegam pela sala online)
+  const locais = await Promise.all((perfilAtual().uid ? [perfilAtual()] : listarPerfis()).map(participanteDoPerfil));
   return mesclar(locais, [...online, ...lerExternos()], meuUid, perfilAtual().id);
 }
 

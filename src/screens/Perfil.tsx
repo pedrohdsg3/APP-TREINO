@@ -7,9 +7,10 @@ import { PLANOS } from '../data/planos';
 import { Botao } from '../ui/Componentes';
 import { Folha } from '../ui/Folha';
 import { AvatarPerfil } from '../ui/Personagem';
+import { enviarAgora, salvarPerfilNuvem, useEstadoSync, type Conta } from '../lib/conta';
 import { SecaoAvisos, SecaoBackup, SecaoDescanso, SecaoInstalar, SecaoPrograma, SecaoTreinos } from './Configuracoes';
 
-export function Perfil({ aoTrocarPerfil }: { aoTrocarPerfil: () => void }) {
+export function Perfil({ aoTrocarPerfil, conta, aoSairConta }: { aoTrocarPerfil: () => void; conta?: Conta; aoSairConta?: () => void }) {
   const [tema, setTema] = useTema();
   const [perfil, setPerfil] = useState(perfilAtual());
   const [editar, setEditar] = useState(false);
@@ -32,7 +33,7 @@ export function Perfil({ aoTrocarPerfil }: { aoTrocarPerfil: () => void }) {
         </div>
         <button className="mini-btn" onClick={() => setEditar(true)}>Editar</button>
       </Card>
-      <Botao variante="secundario" onClick={aoTrocarPerfil}>⇄ Trocar de perfil / criar novo</Botao>
+      {conta ? <SecaoConta conta={conta} aoSair={aoSairConta!} /> : <Botao variante="secundario" onClick={aoTrocarPerfil}>⇄ Trocar de perfil / criar novo</Botao>}
 
       <Folha aberta={editar} aoFechar={() => setEditar(false)} titulo="Editar perfil">
         <div className="detalhe">
@@ -46,8 +47,9 @@ export function Perfil({ aoTrocarPerfil }: { aoTrocarPerfil: () => void }) {
           <Botao grande disabled={!nome.trim()} onClick={() => {
             const p = { ...perfil, nome: nome.trim(), emoji };
             atualizarPerfil(p); setPerfil(p); setEditar(false);
+            if (conta) void salvarPerfilNuvem(conta.uid, p).catch(() => { /* fica local até a próxima edição */ });
           }}>Salvar</Botao>
-          {listarPerfis().length > 1 && <button className="link link--perigo" onClick={() => { setEditar(false); setExcluir(true); }}>Excluir este perfil</button>}
+          {!conta && listarPerfis().length > 1 && <button className="link link--perigo" onClick={() => { setEditar(false); setExcluir(true); }}>Excluir este perfil</button>}
         </div>
       </Folha>
 
@@ -82,5 +84,37 @@ export function Perfil({ aoTrocarPerfil }: { aoTrocarPerfil: () => void }) {
 
       <p className="rodape">Treino · versão {__VERSAO__}</p>
     </div>
+  );
+}
+
+function SecaoConta({ conta, aoSair }: { conta: Conta; aoSair: () => void }) {
+  const e = useEstadoSync();
+  const [confirmar, setConfirmar] = useState(false);
+  const status = !e ? 'Conectando…'
+    : e.enviando ? 'Enviando…'
+    : e.erro ? `Sem conexão com a nuvem — ${e.pendentes} ${e.pendentes === 1 ? 'alteração' : 'alterações'} na fila`
+    : e.pendentes ? `${e.pendentes} ${e.pendentes === 1 ? 'alteração aguardando' : 'alterações aguardando'} envio`
+    : 'Tudo salvo na nuvem ✓';
+  return (
+    <Card className="entra conta">
+      <h3 className="card__titulo">Conta</h3>
+      <div className="conta__linha">
+        {conta.foto ? <img className="conta__foto" src={conta.foto} alt="" referrerPolicy="no-referrer" /> : <span className="conta__foto conta__foto--letra" aria-hidden="true">{(conta.nome ?? conta.email ?? '?')[0]}</span>}
+        <div className="conta__info">
+          <strong>{conta.nome ?? 'Conta Google'}</strong>
+          <span>{conta.email}</span>
+        </div>
+      </div>
+      <p className={`conta__status ${e?.erro ? 'conta__status--erro' : ''}`} role="status">{status}</p>
+      {!!e?.pendentes && !e.enviando && <button className="mini-btn" onClick={() => void enviarAgora()}>Enviar agora</button>}
+      <p className="conta__nota">Seus treinos aparecem em qualquer aparelho em que você entrar com esta conta.</p>
+      {confirmar ? (
+        <div className="conta__sair">
+          <p>Sair da conta neste aparelho? Seus dados continuam guardados na nuvem.</p>
+          <Botao variante="secundario" onClick={() => setConfirmar(false)}>Cancelar</Botao>
+          <Botao className="btn--perigo" disabled={!!e?.pendentes} onClick={aoSair}>{e?.pendentes ? 'Aguarde o envio…' : 'Sair'}</Botao>
+        </div>
+      ) : <button className="link" onClick={() => setConfirmar(true)}>Sair da conta</button>}
+    </Card>
   );
 }

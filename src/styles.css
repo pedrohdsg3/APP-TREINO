@@ -1094,3 +1094,23 @@ strong, .num { font-variant-numeric: tabular-nums; }
 
 .duelo__placar { display: contents; }
 @media (min-width: 1024px) { .duelo__placar { display: flex; } }
+
+/* ---------------------------------------------------------------- conta / login */
+.login { justify-content: center; }
+.login__dupla { display: flex; gap: 8px; justify-content: center; margin: 8px 0; }
+.login__texto { color: var(--texto-2); font-size: 15.5px; line-height: 1.5; }
+.g-logo { display: inline-grid; place-items: center; width: 22px; height: 22px; border-radius: 50%; background: #fff; color: #4285F4; font-weight: 800; font-size: 14px; margin-right: 6px; }
+.escolher__conta { align-self: center; margin-top: 8px; }
+.guiado__rodape .link { display: block; margin: 12px auto 0; }
+.conta__linha { display: flex; align-items: center; gap: 12px; margin-top: 8px; }
+.conta__foto { width: 44px; height: 44px; border-radius: 50%; object-fit: cover; flex: none; }
+.conta__foto--letra { display: grid; place-items: center; background: var(--superficie-2); font-weight: 800; text-transform: uppercase; }
+.conta__info { display: flex; flex-direction: column; min-width: 0; }
+.conta__info span { color: var(--texto-3); font-size: 13.5px; overflow: hidden; text-overflow: ellipsis; }
+.conta__status { margin-top: 12px; font-weight: 600; font-size: 14px; color: var(--verde, var(--texto-2)); }
+.conta__status--erro { color: var(--coral); }
+.conta__nota { font-size: 13px; color: var(--texto-3); margin: 8px 0; }
+.conta__sair { display: flex; flex-direction: column; gap: 8px; }
+.conta__sair p { font-size: 14px; color: var(--texto-2); }
+.carregando { width: 32px; height: 32px; border-radius: 50%; border: 3px solid var(--superficie-2); border-top-color: var(--texto-2); animation: gira 0.8s linear infinite; }
+@keyframes gira { to { transform: rotate(360deg); } }

@@ -14,7 +14,7 @@ export function proximaSegunda(hoje = isoLocal()): string {
   return dow === 1 ? hoje : somarDias(hoje, (8 - dow) % 7 || 7);
 }
 
-export function EscolherPerfil({ aoEscolher }: { aoEscolher: (p: Perfil) => void }) {
+export function EscolherPerfil({ aoEscolher, aoEntrar }: { aoEscolher: (p: Perfil) => void; aoEntrar?: () => void }) {
   const perfis = listarPerfis();
   const [criando, setCriando] = useState(false);
   if (criando) return <NovoPerfil aoCriar={aoEscolher} aoVoltar={() => setCriando(false)} />;
@@ -38,13 +38,14 @@ export function EscolherPerfil({ aoEscolher }: { aoEscolher: (p: Perfil) => void
             <span className="jogador__avatar" aria-hidden="true">＋</span>
             <span className="jogador__info"><strong>Novo perfil</strong><span>Cada perfil tem treinos e dados próprios</span></span>
           </button>
+          {aoEntrar && <button className="link escolher__conta" onClick={aoEntrar}>Entrar com Google para sincronizar entre aparelhos</button>}
         </div>
       </div>
     </div>
   );
 }
 
-function NovoPerfil({ aoCriar, aoVoltar }: { aoCriar: (p: Perfil) => void; aoVoltar: () => void }) {
+export function NovoPerfil({ aoCriar, aoVoltar, titulo = 'Novo perfil' }: { aoCriar: (p: Perfil) => void; aoVoltar?: () => void; titulo?: string }) {
   const [nome, setNome] = useState('');
   const [emoji, setEmoji] = useState('🌸');
   const [plano, setPlano] = useState<DefinicaoPlano['id']>('feminino');
@@ -55,8 +56,8 @@ function NovoPerfil({ aoCriar, aoVoltar }: { aoCriar: (p: Perfil) => void; aoVol
   return (
     <div className="escolher">
       <div className="escolher__corpo entra">
-        <button className="link escolher__voltar" onClick={aoVoltar}>‹ Voltar</button>
-        <h1 className="escolher__titulo">Novo perfil</h1>
+        {aoVoltar && <button className="link escolher__voltar" onClick={aoVoltar}>‹ Voltar</button>}
+        <h1 className="escolher__titulo">{titulo}</h1>
 
         <label className="campo">
           <span>Nome</span>
