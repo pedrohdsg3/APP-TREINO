@@ -2,14 +2,16 @@
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { EXERCICIOS } from '../data/musculacao';
 import { faseDaSemana, prescricao } from '../engine/plano';
+import { ESFORCO_FASE, orientacaoSerie } from '../engine/metodologia';
 import { fmtKg, passoCarga } from '../engine/progressao';
 import {
-  AQUECIMENTO, adicionarSerie, ajustarDescanso, ajustarSerie, alternativas, concluirSerie, desfazerSerie,
+  AQUECIMENTO, adicionarSerie, ajustarAquecimento, ajustarDescanso, ajustarSerie, alternativas, aquecimentoPendente, concluirAquecimento,
+  concluirSerie, desfazerAquecimento, desfazerSerie, pularAquecimento,
   exConcluido, fazerAgora, gravarTreinoAtivo, proximoPendente, pularExercicio, removerSerie, resumir,
   seriesFeitas, treinoConcluido, trocarExercicio, type TreinoAtivo,
 } from '../engine/treinoAtivo';
 import { baixarTreinoEmAndamento, historicoDe, salvarTreino, sessaoAnteriorDoTreino } from '../lib/historico';
-import { avisar } from '../lib/alertas';
+import { avisar, falar } from '../lib/alertas';
 import { fmtRelogio, useAgora, useWakeLock } from '../lib/ganchos';
 import { lerPrefs } from '../lib/prefs';
 import { formatarData } from '../lib/datas';
@@ -117,6 +119,15 @@ function Aquecimento({ t, atualizar, agora, aoSair }: PropsEtapa & { agora: numb
         <p className="rotulo-sup">Antes de começar</p>
         <h1 className="guiado__h1">Aquecimento · 5 min 🔥</h1>
         <p className="sutil">Prepara articulações e músculos e reduz o risco de lesão.</p>
+        <div className="metodo">
+          <strong>Como funciona cada exercício</strong>
+          <ol>
+            <li><b>🔥 Série de aquecimento:</b> carga leve e mais repetições (1º exercício: ~40% × 15–20; demais: ~50% × 12–15).</li>
+            <li><b>💪 Séries de trabalho:</b> carga de trabalho na faixa de repetições do dia, deixando algumas na reserva.</li>
+            <li><b>🏁 Última série:</b> busque o topo da faixa com boa técnica.</li>
+          </ol>
+          <span>Sempre anote a carga e as reps que você realmente fez: é isso que define a progressão das próximas vezes, com cautela nas primeiras semanas.</span>
+        </div>
         <ul className="checklist">
           {AQUECIMENTO.map((txt, i) => (
             <li key={i}>
@@ -152,19 +163,18 @@ function Exercicios({ t, atualizar, agora, aoSair, aoPR }: PropsEtapa & { agora:
   const e = t.exercicios[t.atual];
   const ex = EXERCICIOS[e.item.exercicioId];
   const proximaPendente = e.series.findIndex((s) => !s.feita);
-  const [foco, setFoco] = useState(proximaPendente === -1 ? 0 : proximaPendente);
+  const aqPend = aquecimentoPendente(e);
+  // uma série de cada vez: primeiro o aquecimento (se houver), depois as séries de trabalho em ordem
+  const etapa: 'aquecimento' | number | null = aqPend ? 'aquecimento' : proximaPendente === -1 ? null : proximaPendente;
+  const [editar, setEditar] = useState<'aquecimento' | number | null>(null);
   const [menu, setMenu] = useState(false);
   const [lista, setLista] = useState(false);
   const [trocar, setTrocar] = useState(false);
   const [nota, setNota] = useState(false);
   const [mostraDica, setMostraDica] = useState(false);
 
-  // ao trocar de exercício, foca na primeira série pendente
-  useEffect(() => {
-    const i = t.exercicios[t.atual].series.findIndex((s) => !s.feita);
-    setFoco(i === -1 ? 0 : i);
-    setMostraDica(false);
-  }, [t.atual, t.exercicios[t.atual]?.item.exercicioId]); // eslint-disable-line react-hooks/exhaustive-deps
+  // ao trocar de exercício, recolhe a dica
+  useEffect(() => { setMostraDica(false); setEditar(null); }, [t.atual, t.exercicios[t.atual]?.item.exercicioId]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const descansoDe = (exId: string, padrao: number) => lerPrefs().descansos[exId] ?? padrao;
 
@@ -176,9 +186,6 @@ function Exercicios({ t, atualizar, agora, aoSair, aoPR }: PropsEtapa & { agora:
     if (exConcluido(novo.exercicios[t.atual])) {
       const prox = proximoPendente(novo);
       if (prox !== undefined) novo = { ...novo, atual: prox };
-    } else {
-      const prox = novo.exercicios[t.atual].series.findIndex((s) => !s.feita);
-      setFoco(prox);
     }
     atualizar(() => novo);
     if (pr) aoPR(`PR! ${ex.nome}: ${fmtKg(pr.carga)} × ${pr.reps}`);
@@ -188,8 +195,17 @@ function Exercicios({ t, atualizar, agora, aoSair, aoPR }: PropsEtapa & { agora:
     }
   }
 
+  function concluirAq() {
+    atualizar((x) => concluirAquecimento(x, x.atual, Date.now(), descansoDe(e.item.exercicioId, e.item.descanso)));
+  }
+
   const unidadeReps = ex.medida === 'segundos' ? 's' : 'reps';
   const ant = e.anterior;
+  const fase = faseDaSemana(t.semana);
+  const orient = etapa === null ? null : orientacaoSerie(e, etapa, fase);
+  const valores = etapa === 'aquecimento' ? e.aquecimento! : etapa === null ? null : e.series[etapa];
+  const ajustar = (alvo: 'aquecimento' | number, campo: 'carga' | 'reps', v: number) =>
+    atualizar((x) => (alvo === 'aquecimento' ? ajustarAquecimento(x, x.atual, campo, v) : ajustarSerie(x, x.atual, alvo, campo, v)));
 
   return (
     <div className="guiado">
@@ -216,45 +232,59 @@ function Exercicios({ t, atualizar, agora, aoSair, aoPR }: PropsEtapa & { agora:
               {e.sugestao && <span className="ultima__sug">{e.sugestao.subir ? '⬆️ ' : ''}{e.sugestao.texto}</span>}
             </div>
           ) : (
-            <div className="ultima"><span className="ultima__sug">Primeira vez: escolha uma carga confortável (esforço 7–8/10). Ela vira a referência para as próximas.</span></div>
+            <div className="ultima"><span className="ultima__sug">Primeira vez neste exercício: faça o aquecimento bem leve e depois escolha uma carga de trabalho confortável (esforço {(ESFORCO_FASE[fase] ?? ESFORCO_FASE.Base).esforco}). Ela vira a referência para as próximas vezes.</span></div>
           )}
         </div>
 
-        <ol className="series">
-          {e.series.map((s, si) => {
-            const ativo = si === foco && !s.feita;
-            return (
-              <li key={si} className={`serie ${s.feita ? 'serie--feita' : ''} ${ativo ? 'serie--ativa' : ''}`}>
-                {ativo ? (
-                  <div className="serie__edicao">
-                    <p className="serie__titulo">Série {si + 1} de {e.series.length}</p>
-                    <div className="serie__campos">
-                      {!ex.semCarga && (
-                        <Stepper rotulo="Carga" sufixo="kg" passo={passoCarga(ex)} valor={s.carga}
-                          onChange={(v) => atualizar((x) => ajustarSerie(x, x.atual, si, 'carga', v))} />
-                      )}
-                      <Stepper rotulo={ex.medida === 'segundos' ? 'Tempo' : 'Repetições'} sufixo={unidadeReps} passo={ex.medida === 'segundos' ? 5 : 1} valor={s.reps}
-                        onChange={(v) => atualizar((x) => ajustarSerie(x, x.atual, si, 'reps', v))} />
-                    </div>
-                    <button className="btn-concluir" onClick={() => concluir(si)}>
-                      <Check /> Concluir série
-                    </button>
-                  </div>
-                ) : (
-                  <button className="serie__resumo" onClick={() => (s.feita ? atualizar((x) => desfazerSerie(x, x.atual, si)) : setFoco(si))}
-                    aria-label={s.feita ? `Série ${si + 1} feita. Tocar para desfazer` : `Editar série ${si + 1}`}>
-                    <span className="serie__num">{si + 1}</span>
-                    <span className="serie__val num">
-                      {ex.semCarga ? '' : `${fmtNum(s.carga)} kg × `}{s.reps} {unidadeReps}
-                    </span>
-                    {s.pr && <span className="selo-pr">🏆 PR</span>}
-                    <span className={`serie__check ${s.feita ? 'on' : ''}`} aria-hidden="true"><Check /></span>
-                  </button>
-                )}
-              </li>
-            );
-          })}
-        </ol>
+        <div className="passos" aria-label={etapa === 'aquecimento' ? 'Aquecimento' : etapa === null ? 'Séries concluídas' : `Série ${etapa + 1} de ${e.series.length}`}>
+          {e.aquecimento && (
+            <span className={`passo passo--aq ${e.aquecimento.feita ? 'feito' : e.aquecimento.pulado ? 'pulado' : 'atual'}`} aria-hidden="true">🔥</span>
+          )}
+          {e.series.map((s, i) => (
+            <span key={i} className={`passo ${s.feita ? 'feito' : etapa === i ? 'atual' : ''}`} aria-hidden="true">{s.feita ? '✓' : i + 1}</span>
+          ))}
+        </div>
+
+        {etapa !== null && valores && orient ? (
+          <div className={`serie-atual ${etapa === 'aquecimento' ? 'serie-atual--aq' : ''}`} key={`${t.atual}-${etapa}`}>
+            <p className="serie-atual__titulo">
+              {etapa === 'aquecimento' ? '🔥 Aquecimento' : <>Série <strong>{etapa + 1}</strong> de {e.series.length}</>}
+            </p>
+            <div className="orientacao">
+              <strong>{orient.emoji} {orient.titulo}</strong>
+              <span>{orient.texto}</span>
+            </div>
+            <div className="serie__campos">
+              {!ex.semCarga && (
+                <Stepper rotulo="Carga" sufixo="kg" passo={passoCarga(ex)} valor={valores.carga} onChange={(v) => ajustar(etapa, 'carga', v)} />
+              )}
+              <Stepper rotulo={ex.medida === 'segundos' ? 'Tempo' : 'Repetições'} sufixo={unidadeReps} passo={ex.medida === 'segundos' ? 5 : 1}
+                valor={valores.reps} onChange={(v) => ajustar(etapa, 'reps', v)} />
+            </div>
+            <button className="btn-concluir" onClick={() => (etapa === 'aquecimento' ? concluirAq() : concluir(etapa))}>
+              <Check /> {etapa === 'aquecimento' ? 'Concluir aquecimento' : 'Concluir série'}
+            </button>
+            {etapa === 'aquecimento' && (
+              <button className="link link--sutil" onClick={() => atualizar((x) => pularAquecimento(x, x.atual))}>Pular aquecimento deste exercício</button>
+            )}
+          </div>
+        ) : (
+          <p className="tudo-feito">Todas as séries deste exercício feitas ✅</p>
+        )}
+
+        {(e.aquecimento?.feita || seriesFeitas(e) > 0) && (
+          <div className="feitas" aria-label="Séries feitas (toque para corrigir)">
+            <span className="feitas__rotulo">Feitas</span>
+            {e.aquecimento?.feita && (
+              <button className="feita feita--aq" onClick={() => setEditar('aquecimento')}>🔥 {ex.semCarga ? '' : `${fmtNum(e.aquecimento.carga)}×`}{e.aquecimento.reps}</button>
+            )}
+            {e.series.map((s, i) => s.feita && (
+              <button key={i} className="feita" onClick={() => setEditar(i)}>
+                <small>{i + 1}</small> {ex.semCarga ? '' : `${fmtNum(s.carga)}×`}{s.reps}{s.pr ? ' 🏆' : ''}
+              </button>
+            ))}
+          </div>
+        )}
 
         <div className="series__acoes">
           <button className="link" onClick={() => atualizar((x) => adicionarSerie(x, x.atual))}>+ Série</button>
@@ -306,6 +336,24 @@ function Exercicios({ t, atualizar, agora, aoSair, aoPR }: PropsEtapa & { agora:
         </div>
       </Folha>
 
+      <Folha aberta={editar !== null} aoFechar={() => setEditar(null)} titulo="Corrigir série">
+        {editar !== null && (editar === 'aquecimento' ? e.aquecimento : e.series[editar]) && (
+          <div className="detalhe">
+            <h2 className="detalhe__titulo">{editar === 'aquecimento' ? 'Corrigir aquecimento' : `Corrigir série ${editar + 1}`}</h2>
+            <div className="serie__campos">
+              {!ex.semCarga && <Stepper rotulo="Carga" sufixo="kg" passo={passoCarga(ex)} valor={(editar === 'aquecimento' ? e.aquecimento! : e.series[editar]).carga} onChange={(v) => ajustar(editar, 'carga', v)} />}
+              <Stepper rotulo={ex.medida === 'segundos' ? 'Tempo' : 'Repetições'} sufixo={unidadeReps} passo={ex.medida === 'segundos' ? 5 : 1}
+                valor={(editar === 'aquecimento' ? e.aquecimento! : e.series[editar]).reps} onChange={(v) => ajustar(editar, 'reps', v)} />
+            </div>
+            <Botao grande onClick={() => setEditar(null)}>Pronto</Botao>
+            <button className="link link--perigo" onClick={() => {
+              atualizar((x) => (editar === 'aquecimento' ? desfazerAquecimento(x, x.atual) : desfazerSerie(x, x.atual, editar)));
+              setEditar(null);
+            }}>Marcar como não feita</button>
+          </div>
+        )}
+      </Folha>
+
       <TrocarExercicio aberto={trocar} fechar={() => setTrocar(false)} t={t} atualizar={atualizar} />
       <NotaDor aberto={nota} fechar={() => setNota(false)} t={t} atualizar={atualizar} />
     </div>
@@ -328,21 +376,22 @@ function Descanso({ t, agora, atualizar }: { t: TreinoAtivo; agora: number; atua
     if (acabou && avisado.current !== d.fim) {
       avisado.current = d.fim;
       // só toca se o fim foi agora (não ao reabrir o app muito depois)
-      if (agora - d.fim < 5000) avisar('fim');
+      if (agora - d.fim < 5000) { avisar('fim'); falar('Descanso acabou. Bora para a próxima série!'); }
     }
   }, [resta, acabou, d.fim, agora]);
 
-  // fecha sozinho 4 s depois de acabar
+  // a tela fica piscando até tocar em "Continuar"; se ninguém tocar, o alarme repete uma vez após 15 s
   useEffect(() => {
-    if (!acabou) return;
-    const id = setTimeout(() => atualizar((x) => (x.descanso?.fim === d.fim ? { ...x, descanso: undefined } : x)), Math.max(0, 4000 - (agora - d.fim)));
+    if (!acabou || Date.now() - d.fim > 15000) return;
+    const id = setTimeout(() => avisar('fim'), Math.max(0, 15000 - (Date.now() - d.fim)));
     return () => clearTimeout(id);
-  }, [acabou]); // eslint-disable-line react-hooks/exhaustive-deps
+  }, [acabou, d.fim]);
 
   const e = t.exercicios[t.atual];
+  const aq = aquecimentoPendente(e);
   const si = e.series.findIndex((s) => !s.feita);
   const ex = EXERCICIOS[e.item.exercicioId];
-  const prox = si >= 0 ? e.series[si] : undefined;
+  const prox = aq ? e.aquecimento : si >= 0 ? e.series[si] : undefined;
 
   return (
     <div className={`descanso ${acabou ? 'descanso--fim' : ''}`} role="timer" aria-live="polite">
@@ -353,7 +402,7 @@ function Descanso({ t, agora, atualizar }: { t: TreinoAtivo; agora: number; atua
       {prox && (
         <p className="descanso__prox">
           A seguir: <strong>{ex.nome}</strong><br />
-          Série {si + 1} · {ex.semCarga ? '' : `${fmtNum(prox.carga)} kg × `}{prox.reps} {ex.medida === 'segundos' ? 's' : 'reps'}
+          {aq ? '🔥 Aquecimento' : `Série ${si + 1}`} · {ex.semCarga ? '' : `${fmtNum(prox.carga)} kg × `}{prox.reps} {ex.medida === 'segundos' ? 's' : 'reps'}
         </p>
       )}
       <div className="descanso__btns">
@@ -368,7 +417,8 @@ function Descanso({ t, agora, atualizar }: { t: TreinoAtivo; agora: number; atua
 // ------------------------------------------------------------------ trocar / nota
 function TrocarExercicio({ aberto, fechar, t, atualizar }: { aberto: boolean; fechar: () => void; t: TreinoAtivo; atualizar: PropsEtapa['atualizar'] }) {
   const e = t.exercicios[t.atual];
-  const opcoes = alternativas(e.item.exercicioId, e.planejado);
+  const outrosNoTreino = t.exercicios.filter((_, i) => i !== t.atual).map((x) => x.item.exercicioId);
+  const opcoes = alternativas(e.item.exercicioId, e.planejado, outrosNoTreino);
   const sugeridas = new Set(EXERCICIOS[e.planejado].alternativas ?? []);
   return (
     <Folha aberta={aberto} aoFechar={fechar} titulo="Trocar exercício">

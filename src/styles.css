@@ -954,3 +954,36 @@ strong, .num { font-variant-numeric: tabular-nums; }
 .erro-salvar span { color: var(--texto); line-height: 1.4; }
 .erro-salvar small { color: var(--texto-3); font-size: 11.5px; word-break: break-word; }
 .erro-salvar .link { align-self: flex-start; padding: 2px 0 0; }
+.descanso--fim { animation: aparece 0.3s ease both, piscar-fim 1.1s ease-in-out 0.3s infinite; }
+@keyframes piscar-fim { 0%, 100% { background: color-mix(in srgb, var(--fundo) 94%, transparent); } 50% { background: color-mix(in srgb, var(--corr) 30%, var(--fundo)); } }
+@media (prefers-reduced-motion: reduce) { .descanso--fim { background: color-mix(in srgb, var(--corr) 22%, var(--fundo)); } }
+
+/* séries uma de cada vez + metodologia */
+.passos { display: flex; gap: 6px; align-items: center; justify-content: center; flex-wrap: wrap; }
+.passo { width: 34px; height: 34px; border-radius: 50%; display: grid; place-items: center; font-size: 14px; font-weight: 750; background: var(--superficie-2); color: var(--texto-3); transition: all 0.3s var(--ease); font-variant-numeric: tabular-nums; }
+.passo.atual { background: var(--musc-forte); color: #fff; transform: scale(1.12); box-shadow: 0 6px 14px -6px var(--musc-forte); }
+.passo.feito { background: var(--corr-forte); color: #fff; }
+.passo--aq { font-size: 15px; }
+.passo--aq.atual { background: var(--ouro); box-shadow: 0 6px 14px -6px var(--ouro); }
+.passo--aq.feito { background: var(--ouro-suave); }
+.passo.pulado { opacity: 0.4; }
+.serie-atual { display: flex; flex-direction: column; gap: 12px; padding: 16px; border-radius: var(--raio); background: var(--superficie); border: 2px solid var(--musc); box-shadow: 0 12px 30px -16px var(--musc-forte); animation: entra-dir 0.4s var(--ease) both; }
+.serie-atual--aq { border-color: var(--ouro); box-shadow: 0 12px 30px -16px var(--ouro); }
+.serie-atual__titulo { font-size: 26px; font-weight: 820; letter-spacing: -0.02em; text-align: center; }
+.serie-atual__titulo strong { color: var(--musc); }
+.serie-atual--aq .serie-atual__titulo { color: var(--ouro); }
+.serie-atual .link { align-self: center; padding: 2px 0 0; }
+.orientacao { display: flex; flex-direction: column; gap: 4px; padding: 12px 14px; border-radius: 14px; background: var(--musc-suave); font-size: 14px; line-height: 1.45; }
+.orientacao strong { font-size: 14.5px; color: var(--musc-texto); }
+.orientacao span { color: var(--texto); }
+.serie-atual--aq .orientacao { background: var(--ouro-suave); }
+.serie-atual--aq .orientacao strong { color: var(--texto); }
+.feitas { display: flex; flex-wrap: wrap; align-items: center; gap: 6px; }
+.feitas__rotulo { font-size: 12px; font-weight: 700; color: var(--texto-3); text-transform: uppercase; letter-spacing: 0.05em; margin-right: 2px; }
+.feita { padding: 7px 11px; border-radius: 99px; background: var(--corr-suave); font-size: 13.5px; font-weight: 700; font-variant-numeric: tabular-nums; min-height: 36px; }
+.feita small { color: var(--texto-3); font-weight: 700; margin-right: 2px; }
+.feita--aq { background: var(--ouro-suave); }
+.tudo-feito { text-align: center; font-weight: 700; color: var(--corr); padding: 14px; border-radius: var(--raio-m); background: var(--corr-suave); }
+.metodo { display: flex; flex-direction: column; gap: 6px; padding: 14px 16px; border-radius: var(--raio-m); background: var(--superficie); border: 1px solid var(--borda); font-size: 14px; line-height: 1.45; }
+.metodo ol { margin: 0; padding-left: 18px; display: flex; flex-direction: column; gap: 4px; }
+.metodo span { color: var(--texto-2); font-size: 13.5px; }

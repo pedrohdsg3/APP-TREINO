@@ -3,7 +3,7 @@ import { chaveLocal } from '../lib/perfis';
 // (gravado a cada ação, para retomar se o app fechar no meio).
 import { EXERCICIOS } from '../data/musculacao';
 import type { ItemPlanejado, MusculacaoPlanejada } from './plano';
-import { detectarPR, sugerir, volume, type PR, type SerieFeita, type Sugestao } from './progressao';
+import { detectarPR, passoCarga, sugerir, volume, type PR, type SerieFeita, type Sugestao } from './progressao';
 
 export interface SerieAtiva { carga: number; reps: number; feita: boolean; ts?: number; pr?: PR['tipo'] }
 
@@ -20,7 +20,37 @@ export interface ExAtivo {
   sugestao?: Sugestao;
   nota?: string;
   dores: string[];
+  /** série de aquecimento (não conta em volume, PR nem progressão). Ausente em treinos antigos. */
+  aquecimento?: Aquecimento;
 }
+
+export interface Aquecimento {
+  carga: number;
+  reps: number;
+  repsMin: number;
+  repsMax: number;
+  /** % da carga de trabalho sugerida */
+  pct: number;
+  /** é o primeiro exercício do treino (aquecimento mais leve e longo) */
+  primeiro: boolean;
+  feita: boolean;
+  pulado?: boolean;
+}
+
+/** Série de aquecimento: 1º exercício ~40% × 15–20; demais ~50% × 12–15. Só para exercícios com carga e repetições. */
+export function montarAquecimento(item: ItemPlanejado, cargaTrabalho: number, primeiro: boolean): Aquecimento | undefined {
+  const ex = EXERCICIOS[item.exercicioId];
+  if (!ex || ex.semCarga || ex.medida !== 'reps' || ex.regiao === 'core') return undefined;
+  const pct = primeiro ? 40 : 50;
+  const passo = passoCarga(ex);
+  const carga = cargaTrabalho > 0 ? Math.max(passo, Math.round((cargaTrabalho * pct) / 100 / passo) * passo) : 0;
+  return primeiro
+    ? { carga, reps: 15, repsMin: 15, repsMax: 20, pct, primeiro, feita: false }
+    : { carga, reps: 12, repsMin: 12, repsMax: 15, pct, primeiro, feita: false };
+}
+
+/** O aquecimento deste exercício ainda está pendente? */
+export const aquecimentoPendente = (e: ExAtivo) => !!e.aquecimento && !e.aquecimento.feita && !e.aquecimento.pulado;
 
 export interface TreinoAtivo {
   versao: 1;
@@ -49,7 +79,7 @@ export const AQUECIMENTO = [
   '1–2 séries leves do 1º exercício (~50% da carga)',
 ];
 
-function montarEx(item: ItemPlanejado, planejado: string, h: HistoricoEx | undefined, cargaInicial?: number): ExAtivo {
+function montarEx(item: ItemPlanejado, planejado: string, h: HistoricoEx | undefined, cargaInicial?: number, primeiro = false): ExAtivo {
   const ex = EXERCICIOS[item.exercicioId];
   const sug = sugerir(item, h?.ultima?.series, item.cargaPct);
   const series: SerieAtiva[] = Array.from({ length: item.series }, (_, i) => {
@@ -59,14 +89,17 @@ function montarEx(item: ItemPlanejado, planejado: string, h: HistoricoEx | undef
     const reps = ex.medida === 'falha' ? (ant?.reps ?? 10) : (sug?.reps ?? item.reps);
     return { carga, reps, feita: false };
   });
-  return { item, planejado, series, anterior: h?.ultima?.series, anteriorData: h?.ultima?.data, historico: h?.todas ?? [], sugestao: sug, dores: [] };
+  return {
+    item, planejado, series, anterior: h?.ultima?.series, anteriorData: h?.ultima?.data, historico: h?.todas ?? [], sugestao: sug, dores: [],
+    aquecimento: montarAquecimento(item, series[0]?.carga ?? 0, primeiro),
+  };
 }
 
 export function montarTreino(p: MusculacaoPlanejada, o: { sessaoId: string; data: string; semana: number; agora: number; historico: Record<string, HistoricoEx>; cargasIniciais?: Record<string, number> }): TreinoAtivo {
   return {
     versao: 1, sessaoId: o.sessaoId, data: o.data, semana: o.semana, treinoId: p.id, titulo: p.titulo,
     inicio: o.agora, etapa: p.id === 'abdomen' ? 'exercicio' : 'aquecimento', aquecimento: AQUECIMENTO.map(() => false),
-    exercicios: p.itens.map((it) => montarEx(it, it.exercicioId, o.historico[it.exercicioId], o.cargasIniciais?.[it.exercicioId])),
+    exercicios: p.itens.map((it, i) => montarEx(it, it.exercicioId, o.historico[it.exercicioId], o.cargasIniciais?.[it.exercicioId], i === 0)),
     atual: 0, prs: [],
   };
 }
@@ -106,6 +139,32 @@ export function concluirSerie(t: TreinoAtivo, ei: number, si: number, agora: num
   const acabou = treinoConcluido(novo);
   novo = { ...novo, descanso: acabou ? undefined : { fim: agora + descansoSeg * 1000, total: descansoSeg } };
   return { treino: novo, pr };
+}
+
+/** Altera carga/reps da série de aquecimento. */
+export function ajustarAquecimento(t: TreinoAtivo, ei: number, campo: 'carga' | 'reps', valor: number): TreinoAtivo {
+  return copiaEx(t, ei, (e) => (e.aquecimento ? { ...e, aquecimento: { ...e.aquecimento, [campo]: Math.max(0, Math.round(valor * 100) / 100) } } : e));
+}
+
+/** Conclui o aquecimento e inicia um descanso curto (até 60 s). Não conta PR nem volume. */
+export function concluirAquecimento(t: TreinoAtivo, ei: number, agora: number, descansoSeg: number): TreinoAtivo {
+  const seg = Math.min(60, descansoSeg);
+  const novo = copiaEx(t, ei, (e) => {
+    if (!e.aquecimento) return e;
+    // primeira vez no exercício (sem carga sugerida): as séries de trabalho partem da carga do aquecimento
+    const semCarga = e.series.every((s) => s.feita || s.carga === 0);
+    const series = semCarga && e.aquecimento.carga > 0 ? e.series.map((s) => (s.feita ? s : { ...s, carga: e.aquecimento!.carga })) : e.series;
+    return { ...e, series, aquecimento: { ...e.aquecimento, feita: true, pulado: false } };
+  });
+  return { ...novo, descanso: { fim: agora + seg * 1000, total: seg } };
+}
+
+export function pularAquecimento(t: TreinoAtivo, ei: number): TreinoAtivo {
+  return copiaEx(t, ei, (e) => (e.aquecimento ? { ...e, aquecimento: { ...e.aquecimento, pulado: true } } : e));
+}
+
+export function desfazerAquecimento(t: TreinoAtivo, ei: number): TreinoAtivo {
+  return copiaEx(t, ei, (e) => (e.aquecimento ? { ...e, aquecimento: { ...e.aquecimento, feita: false, pulado: false } } : e));
 }
 
 export function desfazerSerie(t: TreinoAtivo, ei: number, si: number): TreinoAtivo {
@@ -153,7 +212,7 @@ export function pularExercicio(t: TreinoAtivo): TreinoAtivo {
 export function trocarExercicio(t: TreinoAtivo, ei: number, novoId: string, h: HistoricoEx | undefined): TreinoAtivo {
   return copiaEx(t, ei, (e) => {
     const item: ItemPlanejado = { ...e.item, exercicioId: novoId };
-    const novo = montarEx(item, e.planejado, h);
+    const novo = montarEx(item, e.planejado, h, undefined, !!e.aquecimento?.primeiro);
     return { ...novo, nota: e.nota, dores: e.dores };
   });
 }
@@ -172,13 +231,17 @@ export function removerSerie(t: TreinoAtivo, ei: number): TreinoAtivo {
   });
 }
 
-/** Alternativas: as definidas no exercício + outros do mesmo grupo. */
-export function alternativas(exercicioId: string, planejado: string): string[] {
+/**
+ * Alternativas: as definidas no exercício + outros do mesmo grupo,
+ * sem os que já estão no treino do dia (para não repetir exercício).
+ */
+export function alternativas(exercicioId: string, planejado: string, noTreino: string[] = []): string[] {
   const ex = EXERCICIOS[exercicioId];
   const base = EXERCICIOS[planejado];
   const ids = new Set([planejado, ...(base.alternativas ?? []), ...(ex.alternativas ?? []),
     ...Object.values(EXERCICIOS).filter((x) => x.grupo === base.grupo).map((x) => x.id)]);
   ids.delete(exercicioId);
+  for (const id of noTreino) if (id !== planejado) ids.delete(id);
   return [...ids];
 }
 

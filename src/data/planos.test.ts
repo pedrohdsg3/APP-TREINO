@@ -23,11 +23,14 @@ describe('plano feminino', () => {
       for (const it of diaPlanejado(s, d).musculacao!.itens) expect(EXERCICIOS[it.exercicioId], it.exercicioId).toBeDefined();
     }
   });
-  it('começa leve e progride: 2×15 → 4×10 → 4×8; recuperação com menos séries', () => {
+  it('começa em 3×10 (8–10) em todos os exercícios e progride: 4×10 → 4×8; recuperação com menos séries', () => {
     usarPlano(PLANO_FEMININO);
     const pr = (s: number) => diaPlanejado(s, 0).musculacao!.itens.find((i) => i.exercicioId === 'leg-press')!;
-    expect(pr(1)).toMatchObject({ series: 2, reps: 15, cargaPct: 100 });
-    expect(pr(5)).toMatchObject({ series: 4, reps: 12 });
+    expect(pr(1)).toMatchObject({ series: 3, reps: 10, repsMin: 8, cargaPct: 100 });
+    for (const d of [0, 2, 4, 5]) {
+      for (const it of diaPlanejado(1, d).musculacao!.itens.filter((i) => i.descanso !== 45)) expect(it, it.exercicioId).toMatchObject({ series: 3, reps: 10, repsMin: 8 });
+    }
+    expect(pr(5)).toMatchObject({ series: 4, reps: 10 });
     expect(pr(11)).toMatchObject({ series: 4, reps: 8 });
     expect(pr(4)).toMatchObject({ series: 2, cargaPct: 90 });
   });

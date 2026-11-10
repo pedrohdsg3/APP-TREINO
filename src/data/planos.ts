@@ -84,18 +84,22 @@ export const PLANO_PEDRO: DefinicaoPlano = {
 type Papel = 'principal' | 'acessorio' | 'core';
 interface Prescr { series: number; reps: number; repsMin: number }
 
-/** Séries × reps por semana: começa com 2×15 leve e chega a 4×8–10. */
+/**
+ * Séries × reps de trabalho por semana (além da série de aquecimento de cada exercício):
+ * começa em 3×10 (faixa 8–10) em todos os exercícios, sobe para 4 séries nos principais
+ * e chega a 4×6–8 na intensificação. Recuperações (4, 8, 12) com menos séries.
+ */
 const TABELA: Record<number, { principal: Prescr; acessorio: Prescr }> = {
-  1: { principal: { series: 2, reps: 15, repsMin: 12 }, acessorio: { series: 2, reps: 15, repsMin: 12 } },
-  2: { principal: { series: 3, reps: 15, repsMin: 12 }, acessorio: { series: 2, reps: 15, repsMin: 12 } },
-  3: { principal: { series: 3, reps: 12, repsMin: 10 }, acessorio: { series: 3, reps: 15, repsMin: 12 } },
-  4: { principal: { series: 2, reps: 12, repsMin: 10 }, acessorio: { series: 2, reps: 12, repsMin: 10 } },
-  5: { principal: { series: 4, reps: 12, repsMin: 10 }, acessorio: { series: 3, reps: 12, repsMin: 10 } },
-  6: { principal: { series: 4, reps: 12, repsMin: 10 }, acessorio: { series: 3, reps: 12, repsMin: 10 } },
-  7: { principal: { series: 4, reps: 10, repsMin: 8 }, acessorio: { series: 3, reps: 12, repsMin: 10 } },
-  8: { principal: { series: 2, reps: 12, repsMin: 10 }, acessorio: { series: 2, reps: 12, repsMin: 10 } },
+  1: { principal: { series: 3, reps: 10, repsMin: 8 }, acessorio: { series: 3, reps: 10, repsMin: 8 } },
+  2: { principal: { series: 3, reps: 10, repsMin: 8 }, acessorio: { series: 3, reps: 12, repsMin: 10 } },
+  3: { principal: { series: 3, reps: 10, repsMin: 8 }, acessorio: { series: 3, reps: 12, repsMin: 10 } },
+  4: { principal: { series: 2, reps: 10, repsMin: 8 }, acessorio: { series: 2, reps: 12, repsMin: 10 } },
+  5: { principal: { series: 4, reps: 10, repsMin: 8 }, acessorio: { series: 3, reps: 12, repsMin: 10 } },
+  6: { principal: { series: 4, reps: 10, repsMin: 8 }, acessorio: { series: 3, reps: 12, repsMin: 10 } },
+  7: { principal: { series: 4, reps: 8, repsMin: 6 }, acessorio: { series: 3, reps: 10, repsMin: 8 } },
+  8: { principal: { series: 2, reps: 10, repsMin: 8 }, acessorio: { series: 2, reps: 12, repsMin: 10 } },
   9: { principal: { series: 4, reps: 10, repsMin: 8 }, acessorio: { series: 3, reps: 12, repsMin: 10 } },
-  10: { principal: { series: 4, reps: 10, repsMin: 8 }, acessorio: { series: 3, reps: 12, repsMin: 10 } },
+  10: { principal: { series: 4, reps: 8, repsMin: 6 }, acessorio: { series: 3, reps: 10, repsMin: 8 } },
   11: { principal: { series: 4, reps: 8, repsMin: 6 }, acessorio: { series: 3, reps: 10, repsMin: 8 } },
   12: { principal: { series: 2, reps: 10, repsMin: 8 }, acessorio: { series: 2, reps: 12, repsMin: 10 } },
 };

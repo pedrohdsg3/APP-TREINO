@@ -48,6 +48,14 @@ describe('treino ativo', () => {
     t = trocarExercicio(t, 0, 'agachamento-smith', undefined);
     expect(t.exercicios[0]).toMatchObject({ planejado: 'agachamento', item: { exercicioId: 'agachamento-smith', series: 4 } });
   });
+  it('trocar não oferece exercícios que já estão no treino do dia', () => {
+    const alt = alternativas('agachamento-goblet', 'agachamento-goblet', ['leg-press', 'elevacao-pelvica', 'extensora', 'abdutora', 'panturrilha']);
+    expect(alt).not.toContain('leg-press');
+    expect(alt).not.toContain('extensora');
+    expect(alt).toEqual(expect.arrayContaining(['agachamento-smith', 'agachamento']));
+    // o original do plano sempre pode voltar, mesmo que esteja em outro lugar
+    expect(alternativas('leg-press', 'agachamento', ['agachamento'])).toContain('agachamento');
+  });
   it('resumo: volume e conclusão', () => {
     let t = base();
     t.exercicios.forEach((e, i) => e.series.forEach((_, k) => { t = concluirSerie(t, i, k, 1000, 60).treino; }));
