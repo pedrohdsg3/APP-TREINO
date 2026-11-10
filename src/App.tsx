@@ -106,7 +106,7 @@ function AppDoPerfil({ aoTrocarPerfil }: { aoTrocarPerfil: () => void }) {
         </div>
       )}
       {aviso && <div className="toast" role="status">{aviso}</div>}
-      <NavInferior ativa={aba} onChange={trocar} />
+      <NavInferior ativa={aba} onChange={trocar} aoTrocarPerfil={aoTrocarPerfil} />
     </div>
   );
 }

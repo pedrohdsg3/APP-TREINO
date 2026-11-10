@@ -51,7 +51,7 @@ export function Duelo() {
   );
   if (lista.length < 2) {
     return (
-      <div className="tela">
+      <div className="tela tela--duelo">
         {cabecalho}
         <Card className="entra"><p className="sutil">Conecte o duelo online com a outra pessoa (cada um no seu celular) ou crie um segundo perfil neste aparelho.</p></Card>
         <DueloOnline sala={sala} estado={estadoNuvem} aoMudar={setSala} />
@@ -71,19 +71,21 @@ export function Duelo() {
   const frase = mensagem(a, b, sa, sb, quem);
 
   return (
-    <div className="tela">
+    <div className="tela tela--duelo">
       {cabecalho}
 
       <Segmentado<Periodo> rotulo="Período" valor={periodo} onChange={setPeriodo} opcoes={[
         { valor: 'semana', rotulo: 'Semana' }, { valor: 'mes', rotulo: '4 semanas' }, { valor: 'tudo', rotulo: 'Tudo' },
       ]} />
 
+      <div className="duelo__placar">
       <Card className="vs entra">
         <Lado p={a} s={sa} lidera={quem === 'a'} />
         <div className="vs__meio" aria-hidden="true"><span>VS</span></div>
         <Lado p={b} s={sb} lidera={quem === 'b'} />
       </Card>
       <p className="vs__frase">{frase}</p>
+      </div>
 
       <Card className="entra">
         <h3 className="card__titulo">Comparativo</h3>

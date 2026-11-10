@@ -67,7 +67,7 @@ export function Programa() {
   }
 
   return (
-    <div className="tela">
+    <div className="tela tela--programa">
       <header className="cabecalho">
         <h1>Programa</h1>
         <p className="cabecalho__sub">

@@ -1007,3 +1007,90 @@ strong, .num { font-variant-numeric: tabular-nums; }
 .intensidade--leve.on { background: var(--corr-forte); }
 .intensidade--moderada.on { background: var(--musc-forte); }
 .intensidade--alta.on { background: #C2410C; }
+
+/* =========================================================
+   Layout para telas maiores (tablet e computador)
+   No celular nada muda.
+   ========================================================= */
+.nav__marca, .nav__perfil { display: none; }
+
+@media (min-width: 768px) {
+  .app { max-width: 760px; }
+  .nav { max-width: 760px; }
+  .principal { padding-left: 28px; padding-right: 28px; }
+  .grade-mini { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+  .mini--largo { grid-column: auto; }
+  .linha-tempo { display: grid; grid-template-columns: 1fr 1fr; gap: 12px; align-items: start; }
+  .semana--aberta { grid-column: 1 / -1; }
+  .conquistas { grid-template-columns: repeat(4, minmax(0, 1fr)); }
+  /* folhas viram janelas centralizadas */
+  .folha-fundo { align-items: center; padding: 24px; }
+  .folha { border-radius: 24px; max-height: 86vh; animation: sobe 0.35s var(--ease) both; }
+  .folha__alca { display: none; }
+  .guiado, .corrida, .escolher { max-width: 640px; }
+}
+
+@media (min-width: 1024px) {
+  .app {
+    max-width: none; display: grid; grid-template-columns: 248px minmax(0, 1fr);
+    height: 100vh;
+  }
+  .principal { order: 2; padding: 36px 40px 48px; }
+  .principal > .transicao { max-width: 1120px; margin: 0 auto; }
+  /* barra lateral */
+  .nav {
+    order: 1; position: sticky; top: 0; left: auto; bottom: auto; transform: none;
+    width: auto; max-width: none; height: 100vh;
+    display: flex; flex-direction: column; align-items: stretch; gap: 4px;
+    padding: 24px 16px; border-top: 0; border-right: 1px solid var(--borda);
+    background: var(--superficie);
+    backdrop-filter: none; -webkit-backdrop-filter: none;
+  }
+  .nav__marca { display: flex; align-items: center; gap: 10px; padding: 4px 10px 18px; font-weight: 800; font-size: 17px; letter-spacing: -0.01em; }
+  .nav__marca img { border-radius: 9px; }
+  .nav__marca small { display: block; font-size: 12px; font-weight: 600; color: var(--texto-3); }
+  .nav__perfil { display: flex; align-items: center; gap: 10px; padding: 10px; margin-bottom: 14px; border-radius: 16px; background: var(--superficie-2); text-align: left; }
+  .nav__perfil span { display: flex; flex-direction: column; }
+  .nav__perfil strong { font-size: 15px; }
+  .nav__perfil small { font-size: 12px; color: var(--texto-3); }
+  .nav__item { flex-direction: row; justify-content: flex-start; gap: 12px; min-height: 48px; padding: 0 10px; border-radius: 14px; font-size: 15px; }
+  .nav__item:hover { background: var(--superficie-2); color: var(--texto); }
+  .nav__icone { width: 36px; height: 36px; }
+  .nav__item.ativo { background: var(--musc-suave); }
+  .nav__item.ativo .nav__icone { background: transparent; }
+  /* o avatar da Hoje vira redundante com o da barra lateral */
+  .cabecalho__linha .avatar { display: none; }
+  .cabecalho h1 { font-size: 32px; }
+
+  .toast, .atualizacao { left: calc(50% + 124px); bottom: 28px; max-width: 480px; }
+  .tela--duelo .vs__frase { padding: 0; }
+
+  /* ---- grades por tela ---- */
+  .tela--hoje { display: grid; grid-template-columns: minmax(0, 1.35fr) minmax(0, 1fr); gap: 20px; align-items: start; grid-auto-flow: row dense; }
+  .tela--hoje > * { grid-column: 2; }
+  .tela--hoje > .cabecalho, .tela--hoje > .perdido { grid-column: 1 / -1; }
+  .tela--hoje > .treino-dia, .tela--hoje > .concluido { grid-column: 1; grid-row: span 6; }
+  .tela--hoje .grade-mini { grid-template-columns: 1fr 1fr; }
+  .tela--hoje .mini--largo { grid-column: 1 / -1; }
+
+  .tela--programa .linha-tempo { grid-template-columns: repeat(3, minmax(0, 1fr)); }
+
+  .tela--duelo { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; grid-auto-flow: row dense; }
+  .tela--duelo > * { grid-column: 2; }
+  .tela--duelo > .cabecalho, .tela--duelo > .segmentado { grid-column: 1 / -1; }
+  .tela--duelo > .duelo__placar { grid-column: 1; display: flex; flex-direction: column; gap: 16px; }
+
+  .tela--perfil { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+  .tela--perfil > .cabecalho { grid-column: 1 / -1; }
+
+  .evolucao > .tela { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 20px; align-items: start; }
+  .evolucao > .tela > .secao, .evolucao > .tela > .secao-linha, .evolucao > .tela > .conquistas,
+  .evolucao > .tela > .metas-auto, .evolucao > .tela > .stats-3, .evolucao > .tela > .mapa,
+  .evolucao > .tela > .vazio, .evolucao > .tela > p { grid-column: 1 / -1; }
+  .evolucao > .tela > .metas-auto { display: grid; grid-template-columns: 1fr 1fr; }
+  .conquistas { grid-template-columns: repeat(6, minmax(0, 1fr)); }
+  .tela > .segmentado { max-width: 560px; }
+}
+
+.duelo__placar { display: contents; }
+@media (min-width: 1024px) { .duelo__placar { display: flex; } }

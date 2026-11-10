@@ -61,7 +61,7 @@ export function Hoje({ aoIniciar, aoCorridaLivre, aoTrocarPerfil }: { aoIniciar:
     : plano?.descanso ? 'Cardio leve concluído ✅' : temExtra ? 'Corrida concluída ✅' : 'Treino de hoje concluído ✅';
 
   return (
-    <div className="tela">
+    <div className="tela tela--hoje">
       <header className="cabecalho">
         <p className="cabecalho__data">{dataPorExtenso(hoje)}</p>
         <div className="cabecalho__linha">

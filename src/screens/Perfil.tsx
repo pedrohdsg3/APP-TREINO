@@ -18,7 +18,7 @@ export function Perfil({ aoTrocarPerfil }: { aoTrocarPerfil: () => void }) {
   const [excluir, setExcluir] = useState(false);
   const [confirmaNome, setConfirmaNome] = useState('');
   return (
-    <div className="tela">
+    <div className="tela tela--perfil">
       <header className="cabecalho">
         <h1>Perfil</h1>
         <p className="cabecalho__sub">Configurações, backup e instalação</p>
