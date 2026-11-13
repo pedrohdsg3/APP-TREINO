@@ -2,9 +2,9 @@
 import { useEffect, useMemo, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type RegistroAlimento } from '../db';
-import { medidasDe, type Medida } from '../data/medidas';
+import { type Medida } from '../data/medidas';
 import {
-  alterarQuantidade, apagarLancamento, ATIVIDADES, buscar, calcularMetas, carregarTaco, lancar, lerMetas, moverRefeicao, OBJETIVOS, porcao,
+  alterarQuantidade, apagarLancamento, ATIVIDADES, buscar, calcularMetas, carregarBase, lancar, medidasPara, lerMetas, moverRefeicao, OBJETIVOS, porcao,
   recentes, REFEICOES, salvarMetas, somar, somarAgua, type Alimento, type DadosCorpo, type MetasDieta, type RefeicaoId,
 } from '../lib/dieta';
 import { dataPorExtenso, isoLocal, somarDias } from '../lib/datas';
@@ -165,10 +165,10 @@ function Agua({ ml, meta, aoSomar }: { ml: number; meta?: number; aoSomar: (ml: 
 }
 
 // ---------------------------------------------------------------- quantidade
-function Quantidade({ alimento, medida, qtd, onChange }: {
-  alimento: Pick<Alimento, 'nome' | 'kcal' | 'p' | 'c' | 'g' | 'fibra'>; medida: Medida; qtd: number; onChange: (m: Medida, q: number) => void;
+function Quantidade({ alimento, medidas: lista, medida, qtd, onChange }: {
+  alimento: Pick<Alimento, 'nome' | 'kcal' | 'p' | 'c' | 'g' | 'fibra'>; medidas: Medida[]; medida: Medida; qtd: number; onChange: (m: Medida, q: number) => void;
 }) {
-  const medidas = medidasDe(alimento.nome);
+  const medidas = [...lista];
   if (!medidas.some((m) => m.nome === medida.nome)) medidas.push(medida);
   const gramas = Math.round(medida.g * qtd);
   const t = porcao(alimento, gramas);
@@ -211,19 +211,29 @@ function EscolherRefeicao({ valor, onChange }: { valor: RefeicaoId; onChange: (r
 }
 
 // ---------------------------------------------------------------- adicionar
+interface NoPrato { a: Alimento; medida: Medida; qtd: number }
+const gramasDe = (x: Pick<NoPrato, 'medida' | 'qtd'>) => Math.round(x.medida.g * x.qtd);
+const praRefeicao = (id: RefeicaoId) => `${id === 'ceia' ? 'na' : 'no'} ${REFEICOES.find((r) => r.id === id)!.nome.toLowerCase()}`;
+
+/**
+ * Busca → quantidade. Dá para montar o "prato" com vários alimentos (ex.: pão + ovo)
+ * e salvar tudo de uma vez.
+ */
 function AdicionarAlimento({ data, refeicao: inicial, aoFechar }: { data: string; refeicao: RefeicaoId; aoFechar: () => void }) {
   const [base, setBase] = useState<Alimento[] | null>(null);
+  const [erroBase, setErroBase] = useState(false);
   const [termo, setTermo] = useState('');
   const [rec, setRec] = useState<RegistroAlimento[]>([]);
-  const [escolhido, setEscolhido] = useState<{ a: Alimento; medida: Medida; qtd: number } | null>(null);
+  const [escolhido, setEscolhido] = useState<NoPrato | null>(null);
+  const [prato, setPrato] = useState<NoPrato[]>([]);
   const [refeicao, setRefeicao] = useState<RefeicaoId>(inicial);
   const [salvando, setSalvando] = useState(false);
 
-  useEffect(() => { void carregarTaco().then(setBase); void recentes().then(setRec); }, []);
+  useEffect(() => { void carregarBase().then(setBase).catch(() => setErroBase(true)); void recentes().then(setRec); }, []);
   const resultados = useMemo(() => (base && termo.trim().length >= 2 ? buscar(base, termo) : []), [base, termo]);
 
   function escolher(a: Alimento, ultimo?: RegistroAlimento) {
-    const ms = medidasDe(a.nome);
+    const ms = medidasPara(a);
     if (ultimo) {
       const m = ms.find((x) => x.nome === ultimo.medida) ?? { nome: 'gramas', g: 1 };
       return setEscolhido({ a, medida: m, qtd: m.g === 1 ? ultimo.gramas : ultimo.qtd });
@@ -232,32 +242,65 @@ function AdicionarAlimento({ data, refeicao: inicial, aoFechar }: { data: string
     setEscolhido(caseira ? { a, medida: caseira, qtd: 1 } : { a, medida: ms[0], qtd: 100 });
   }
 
+  async function salvar(itens: NoPrato[]) {
+    setSalvando(true);
+    for (const x of itens) await lancar(data, refeicao, x.a, gramasDe(x), { nome: x.medida.nome, qtd: x.qtd });
+    aoFechar();
+  }
+
+  function incluir() {
+    if (!escolhido) return;
+    setPrato([...prato, escolhido]); setEscolhido(null); setTermo('');
+  }
+
+  const totalPrato = somar(prato.map((x) => porcao(x.a, gramasDe(x))));
+
   if (escolhido) {
-    const gramas = Math.round(escolhido.medida.g * escolhido.qtd);
-    const nomeRef = REFEICOES.find((r) => r.id === refeicao)!.nome;
+    const gramas = gramasDe(escolhido);
+    const n = prato.length + 1;
     return (
       <div className="detalhe">
         <button className="link escolher__voltar" onClick={() => setEscolhido(null)}>‹ Voltar à busca</button>
         <h2 className="detalhe__titulo">{escolhido.a.nome}</h2>
-        <p className="sutil">{escolhido.a.grupo} · {fmt(escolhido.a.kcal)} kcal em 100 g</p>
-        <Quantidade alimento={escolhido.a} medida={escolhido.medida} qtd={escolhido.qtd} onChange={(medida, qtd) => setEscolhido({ ...escolhido, medida, qtd })} />
+        <p className="sutil">{escolhido.a.grupo} · {fmt(escolhido.a.kcal)} kcal em 100 g · {escolhido.a.fonte}</p>
+        <Quantidade alimento={escolhido.a} medidas={medidasPara(escolhido.a)} medida={escolhido.medida} qtd={escolhido.qtd} onChange={(medida, qtd) => setEscolhido({ ...escolhido, medida, qtd })} />
         <EscolherRefeicao valor={refeicao} onChange={setRefeicao} />
-        <Botao grande disabled={gramas <= 0 || salvando} onClick={async () => {
-          setSalvando(true);
-          await lancar(data, refeicao, escolhido.a, gramas, { nome: escolhido.medida.nome, qtd: escolhido.qtd });
-          aoFechar();
-        }}>Adicionar {refeicao === 'ceia' ? 'à' : 'ao'} {nomeRef.toLowerCase()}</Botao>
+        <div className="acoes-fixas">
+          {!!prato.length && <p className="sutil centro">Já no prato: {prato.map((x) => x.a.nome.split(',')[0]).join(' · ')}</p>}
+          <Botao grande disabled={gramas <= 0 || salvando} onClick={() => void salvar([...prato, escolhido])}>
+            {n > 1 ? `Salvar ${n} alimentos ${praRefeicao(refeicao)}` : `Salvar ${praRefeicao(refeicao)}`}
+          </Botao>
+          <Botao variante="secundario" disabled={gramas <= 0} onClick={incluir}>＋ Incluir e adicionar outro alimento</Botao>
+        </div>
       </div>
     );
   }
 
-  const deRecente = (r: RegistroAlimento): Alimento => ({ id: r.alimentoId, nome: r.nome, grupo: 'Recente', kcal: r.por100.kcal, p: r.por100.p, c: r.por100.c, g: r.por100.g, fibra: r.por100.fibra, sodio: 0 });
+  const deRecente = (r: RegistroAlimento): Alimento => {
+    const b = base?.find((x) => x.id === r.alimentoId);
+    return b ?? { id: r.alimentoId, nome: r.nome, grupo: 'Recente', kcal: r.por100.kcal, p: r.por100.p, c: r.por100.c, g: r.por100.g, fibra: r.por100.fibra, sodio: 0, fonte: 'TACO' };
+  };
 
   return (
     <div className="detalhe busca-alimento">
-      <h2 className="detalhe__titulo">Adicionar alimento</h2>
-      <input className="busca" type="search" autoFocus placeholder="Buscar: arroz, ovo, banana…" value={termo} onChange={(e) => setTermo(e.target.value)} aria-label="Buscar alimento" />
-      {!base && <p className="sutil">Carregando a tabela de alimentos…</p>}
+      <h2 className="detalhe__titulo">{prato.length ? 'Adicionar mais' : 'Adicionar alimento'}</h2>
+      {!!prato.length && (
+        <div className="prato">
+          <div className="prato__topo"><strong>No prato · {fmt(totalPrato.kcal)} kcal</strong><span className="sutil">{praRefeicao(refeicao)}</span></div>
+          <ul>
+            {prato.map((x, i) => (
+              <li key={i}>
+                <span>{x.a.nome} <small>· {textoQtd({ medida: x.medida.g === 1 ? 'gramas' : x.medida.nome, qtd: x.qtd, gramas: gramasDe(x) })}</small></span>
+                <button className="mini-btn mini-btn--perigo" aria-label={`Tirar ${x.a.nome}`} onClick={() => setPrato(prato.filter((_, j) => j !== i))}>✕</button>
+              </li>
+            ))}
+          </ul>
+          <Botao disabled={salvando} onClick={() => void salvar(prato)}>Salvar {prato.length} {prato.length === 1 ? 'alimento' : 'alimentos'} {praRefeicao(refeicao)}</Botao>
+        </div>
+      )}
+      <input className="busca" type="search" autoFocus placeholder="Buscar: arroz, ovo frito, tapioca…" value={termo} onChange={(e) => setTermo(e.target.value)} aria-label="Buscar alimento" />
+      {!base && !erroBase && <p className="sutil">Carregando a tabela de alimentos…</p>}
+      {erroBase && <p className="aviso-campo">Não consegui carregar a tabela de alimentos. Abra o app com internet uma vez para ela ficar salva.</p>}
       {termo.trim().length < 2 ? (
         rec.length ? (
           <>
@@ -271,12 +314,12 @@ function AdicionarAlimento({ data, refeicao: inicial, aoFechar }: { data: string
               ))}
             </ul>
           </>
-        ) : <p className="sutil">Digite pelo menos 2 letras. A busca ignora acentos e a ordem das palavras (ex.: "frango grelhado").</p>
+        ) : <p className="sutil">Digite pelo menos 2 letras. A busca ignora acentos e a ordem das palavras (ex.: "ovo frito", "frango grelhado").</p>
       ) : resultados.length ? (
         <ul className="lista-alimentos">
           {resultados.map((a) => (
             <li key={a.id}><button onClick={() => escolher(a)}>
-              <span className="lista-alimentos__nome">{a.nome}</span>
+              <span className="lista-alimentos__nome">{a.nome} <span className={`fonte fonte--${a.fonte.toLowerCase()}`}>{a.fonte}</span></span>
               <span className="lista-alimentos__info">{fmt(a.kcal)} kcal · P {fmt(a.p, 1)} · C {fmt(a.c, 1)} · G {fmt(a.g, 1)} <small>(100 g)</small></span>
             </button></li>
           ))}
@@ -288,15 +331,16 @@ function AdicionarAlimento({ data, refeicao: inicial, aoFechar }: { data: string
 
 // ---------------------------------------------------------------- editar
 function EditarLancamento({ r, aoFechar }: { r: RegistroAlimento; aoFechar: () => void }) {
-  const ms = medidasDe(r.nome);
-  const [medida, setMedida] = useState<Medida>(ms.find((m) => m.nome === r.medida) ?? { nome: 'gramas', g: 1 });
-  const [qtd, setQtd] = useState(medida.g === 1 ? r.gramas : r.qtd);
+  const [medidas, setMedidas] = useState<Medida[]>(medidasPara({ nome: r.nome }));
+  const [medida, setMedida] = useState<Medida>(medidas.find((m) => m.nome === r.medida) ?? { nome: r.medida === 'gramas' ? 'gramas' : r.medida, g: r.medida === 'gramas' ? 1 : r.gramas / (r.qtd || 1) });
+  const [qtd, setQtd] = useState(r.medida === 'gramas' ? r.gramas : r.qtd);
   const [refeicao, setRefeicao] = useState<RefeicaoId>(r.refeicao as RefeicaoId);
+  useEffect(() => { void carregarBase().then((b) => { const a = b.find((x) => x.id === r.alimentoId); if (a) setMedidas(medidasPara(a)); }).catch(() => { /* fica com as gerais */ }); }, [r.alimentoId]);
   const gramas = Math.round(medida.g * qtd);
   return (
     <div className="detalhe">
       <h2 className="detalhe__titulo">{r.nome}</h2>
-      <Quantidade alimento={{ nome: r.nome, ...r.por100 }} medida={medida} qtd={qtd} onChange={(m, q) => { setMedida(m); setQtd(q); }} />
+      <Quantidade alimento={{ nome: r.nome, ...r.por100 }} medidas={medidas} medida={medida} qtd={qtd} onChange={(m, q) => { setMedida(m); setQtd(q); }} />
       <EscolherRefeicao valor={refeicao} onChange={setRefeicao} />
       <Botao grande disabled={gramas <= 0} onClick={async () => {
         await alterarQuantidade(r, gramas, { nome: medida.nome, qtd });

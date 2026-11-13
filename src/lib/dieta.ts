@@ -1,6 +1,7 @@
 // Dieta: alimentos (TACO + próprios), diário por refeição, água e metas.
 import { db, type RegistroAlimento } from '../db';
 import { novoId } from './historico';
+import { medidasDe, type Medida } from '../data/medidas';
 
 export const REFEICOES = [
   { id: 'cafe', nome: 'Café da manhã', emoji: '☕' },
@@ -13,19 +14,42 @@ export const REFEICOES = [
 export type RefeicaoId = (typeof REFEICOES)[number]['id'];
 
 /** Valores por 100 g. */
-export interface Alimento { id: string; nome: string; grupo: string; kcal: number; p: number; g: number; c: number; fibra: number; sodio: number }
+export interface Alimento {
+  id: string; nome: string; grupo: string; kcal: number; p: number; g: number; c: number; fibra: number; sodio: number;
+  /** de onde vêm os valores */
+  fonte: 'TACO' | 'IBGE' | 'Meu';
+  /** medidas caseiras próprias do alimento (IBGE); senão usa as regras gerais */
+  medidas?: Medida[];
+}
 
 export interface Totais { kcal: number; p: number; c: number; g: number; fibra: number }
 export const ZERO: Totais = { kcal: 0, p: 0, c: 0, g: 0, fibra: 0 };
 
-// ---------------------------------------------------------------- base TACO (carregada sob demanda)
-let taco: Promise<Alimento[]> | null = null;
-export function carregarTaco(): Promise<Alimento[]> {
-  taco ??= import('../data/taco.json').then((m) => {
-    const d = (m.default ?? m) as unknown as { grupos: string[]; alimentos: [number, string, number, number, number, number, number, number, number][] };
-    return d.alimentos.map(([id, nome, gi, kcal, p, g, c, fibra, sodio]) => ({ id: `taco:${id}`, nome, grupo: d.grupos[gi], kcal, p, g, c, fibra, sodio }));
-  });
-  return taco;
+// ---------------------------------------------------------------- bases (carregadas sob demanda)
+type Linha = [number, string, number, number, number, number, number, number, unknown];
+let base: Promise<Alimento[]> | null = null;
+
+/** TACO 4ª ed. (NEPA/UNICAMP) + IBGE POF 2008-2009 (com preparos e medidas caseiras oficiais). */
+export function carregarBase(): Promise<Alimento[]> {
+  base ??= Promise.all([import('../data/taco.json'), import('../data/ibge.json')]).then(([t, i]) => {
+    const taco = (t.default ?? t) as unknown as { grupos: string[]; alimentos: Linha[] };
+    const ibge = (i.default ?? i) as unknown as { grupos: string[]; alimentos: Linha[] };
+    return [
+      ...taco.alimentos.map(([id, nome, gi, kcal, p, g, c, fibra, sodio]): Alimento => ({ id: `taco:${id}`, nome, grupo: taco.grupos[gi], kcal, p, g, c, fibra, sodio: sodio as number, fonte: 'TACO' })),
+      ...ibge.alimentos.map(([id, nome, gi, kcal, p, g, c, fibra, med]): Alimento => ({
+        id: `ibge:${id}`, nome, grupo: ibge.grupos[gi], kcal, p, g, c, fibra, sodio: 0, fonte: 'IBGE',
+        medidas: (med as [string, number][]).map(([n, gr]) => ({ nome: n, g: gr })),
+      })),
+    ];
+  }).catch((e) => { base = null; throw e; });
+  return base;
+}
+/** @deprecated use carregarBase */
+export const carregarTaco = carregarBase;
+
+/** Medidas do alimento: gramas + as próprias (IBGE) ou as regras gerais. */
+export function medidasPara(a: Pick<Alimento, 'nome' | 'medidas'>): Medida[] {
+  return a.medidas?.length ? [{ nome: 'gramas', g: 1 }, ...a.medidas] : medidasDe(a.nome);
 }
 
 export const normalizar = (s: string) => s.toLowerCase().normalize('NFD').replace(/[̀-ͯ]/g, '').replace(/[^a-z0-9 ]/g, ' ');
@@ -39,6 +63,7 @@ export function buscar(lista: Alimento[], termo: string, limite = 40): Alimento[
     if (!palavras.every((w) => n.includes(w))) return -1;
     let s = 0;
     if (n.startsWith(palavras[0])) s += 10;
+    if (palavras.length > 1 && n.includes(palavras.join(' '))) s += 4;
     const primeira = n.split(' ')[0];
     if (primeira === palavras[0]) s += 5;
     s -= n.length / 20; // nomes mais curtos (mais genéricos) primeiro

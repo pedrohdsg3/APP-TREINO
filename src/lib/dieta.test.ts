@@ -1,16 +1,26 @@
 import { describe, expect, it } from 'vitest';
-import { buscar, calcularMetas, carregarTaco, porcao, somar } from './dieta';
+import { buscar, calcularMetas, carregarBase, medidasPara, porcao, somar } from './dieta';
 import { medidasDe } from '../data/medidas';
 
 describe('dieta', () => {
   it('carrega a TACO e encontra alimentos comuns sem acento e fora de ordem', async () => {
-    const t = await carregarTaco();
-    expect(t.length).toBeGreaterThan(590);
+    const t = await carregarBase();
+    expect(t.length).toBeGreaterThan(2500);
     expect(buscar(t, 'arroz cozido')[0].nome).toMatch(/^Arroz/);
     expect(buscar(t, 'feijao carioca').some((a) => a.nome === 'Feijão, carioca, cozido')).toBe(true);
     expect(buscar(t, 'pao frances')[0].nome).toBe('Pão, trigo, francês');
-    expect(buscar(t, 'frango peito grelhado')[0]).toMatchObject({ kcal: 159, p: 32 });
+    expect(buscar(t, 'frango peito grelhado').some((a) => a.kcal === 159 && a.p === 32)).toBe(true);
     expect(buscar(t, 'xyzw')).toEqual([]);
+  });
+
+  it('IBGE: preparos e medidas caseiras oficiais (ovo frito, tapioca, açaí)', async () => {
+    const t = await carregarBase();
+    const ovo = buscar(t, 'ovo galinha frito').find((a) => a.fonte === 'IBGE')!;
+    expect(ovo).toMatchObject({ nome: 'Ovo de galinha, frito(a)', kcal: 223 });
+    expect(medidasPara(ovo)).toContainEqual({ nome: 'unidade', g: 50 });
+    expect(buscar(t, 'tapioca').length).toBeGreaterThan(0);
+    expect(buscar(t, 'acai').some((a) => a.fonte === 'IBGE')).toBe(true);
+    expect(buscar(t, 'coxinha')[0].fonte).toBe('IBGE');
   });
 
   it('calcula porções e soma o dia', () => {
