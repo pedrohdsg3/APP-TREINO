@@ -1,12 +1,12 @@
 import 'fake-indexeddb/auto';
 import { describe, expect, it } from 'vitest';
 import { criarBanco } from '../db';
-import { Sincronizador, type Backend, type Colecao, type Dados, type Armazem } from './sync';
+import { COLECOES, Sincronizador, type Backend, type Colecao, type Dados, type Armazem } from './sync';
 
 /** "Nuvem" em memória que avisa os ouvintes como o Firestore faz. */
 function nuvemMemoria() {
-  const dados: Record<Colecao, Map<string, Dados>> = { sessoes: new Map(), corpo: new Map(), ajustes: new Map() };
-  const ouvintes: Record<Colecao, Set<(d: { id: string; dados: Dados }[]) => void>> = { sessoes: new Set(), corpo: new Set(), ajustes: new Set() };
+  const dados = Object.fromEntries(COLECOES.map((c) => [c, new Map()])) as Record<Colecao, Map<string, Dados>>;
+  const ouvintes = Object.fromEntries(COLECOES.map((c) => [c, new Set()])) as Record<Colecao, Set<(d: { id: string; dados: Dados }[]) => void>>;
   let offline = false;
   const backend = (): Backend => ({
     async enviar(col, id, d) {
@@ -54,6 +54,24 @@ describe('sincronização', () => {
     await esperar(); await sB.enviar(); await esperar();
     expect(await celular.sessoes.get('s1')).toBeUndefined();
     expect(await celular.series.where('sessaoId').equals('s1').count()).toBe(0);
+    sA.parar(); sB.parar();
+  });
+
+  it('dieta: diário e água chegam ao outro aparelho', async () => {
+    const nuvem = nuvemMemoria();
+    const cel = criarBanco('sync-dieta-cel'), pc = criarBanco('sync-dieta-pc');
+    const sA = new Sincronizador(cel, nuvem.backend(), 'cel', armazem(), 'd', 0);
+    const sB = new Sincronizador(pc, nuvem.backend(), 'pc', armazem(), 'd', 0);
+    sA.iniciar(); sB.iniciar();
+    const por100 = { kcal: 128, p: 2.5, c: 28.1, g: 0.2, fibra: 1.6 };
+    await cel.diario.put({ id: 'a1', data: '2026-11-13', refeicao: 'almoco', alimentoId: 'taco:3', nome: 'Arroz', gramas: 150, medida: 'gramas', qtd: 150, kcal: 192, p: 3.8, c: 42.2, g: 0.3, fibra: 2.4, por100, ts: 1 });
+    await cel.agua.put({ data: '2026-11-13', ml: 750 });
+    await esperar(); await sA.enviar(); await esperar();
+    expect(await pc.diario.get('a1')).toMatchObject({ kcal: 192, refeicao: 'almoco' });
+    expect(await pc.agua.get('2026-11-13')).toMatchObject({ ml: 750 });
+    await pc.diario.delete('a1');
+    await esperar(); await sB.enviar(); await esperar();
+    expect(await cel.diario.get('a1')).toBeUndefined();
     sA.parar(); sB.parar();
   });
 

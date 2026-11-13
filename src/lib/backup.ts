@@ -3,7 +3,7 @@ import { comBanco } from '../db';
 import { listarPerfis, salvarPerfis, type Perfil } from './perfis';
 
 export const FORMATO = 'treino-12-semanas';
-const TABELAS = ['sessoes', 'series', 'corridas', 'corpo', 'ajustes'] as const;
+const TABELAS = ['sessoes', 'series', 'corridas', 'corpo', 'ajustes', 'diario', 'agua'] as const;
 type Tabela = (typeof TABELAS)[number];
 
 export interface BackupPerfil { perfil: Perfil; tabelas: Record<Tabela, unknown[]> }
@@ -45,6 +45,7 @@ export async function importar(b: Backup): Promise<void> {
     perfis = existente ? perfis.map((p) => (p.id === alvo.id ? alvo : p)) : [...perfis, alvo];
     await comBanco(alvo.banco, (banco) => banco.transaction('rw', TABELAS.map((t) => banco.table(t)), async () => {
       for (const t of TABELAS) {
+        if (!tabelas[t]) continue; // backup antigo sem a tabela (ex.: dieta): mantém o que existe
         await banco.table(t).clear();
         const linhas = tabelas[t] ?? [];
         if (linhas.length) await banco.table(t).bulkPut(linhas);

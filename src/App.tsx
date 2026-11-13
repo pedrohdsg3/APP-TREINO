@@ -6,6 +6,7 @@ import { Programa } from './screens/Programa';
 import { Duelo } from './screens/Duelo';
 import { Evolucao } from './screens/Evolucao';
 import { Perfil } from './screens/Perfil';
+import { Dieta } from './screens/Dieta';
 import { Botao } from './ui/Componentes';
 import { TreinoMusculacao } from './screens/TreinoMusculacao';
 import { lerTreinoAtivo, montarTreino, type TreinoAtivo } from './engine/treinoAtivo';
@@ -149,7 +150,8 @@ function AppDoPerfil({ aoTrocarPerfil: trocarLocal, conta, aoSairConta }: { aoTr
     <div className="app">
       <main ref={principal} className="principal">
         <div key={aba} className={`transicao transicao--${direcao}`}>
-          {aba === 'hoje' && <Hoje aoIniciar={iniciar} aoCorridaLivre={corridaLivre} aoTrocarPerfil={aoTrocarPerfil} />}
+          {aba === 'hoje' && <Hoje aoIniciar={iniciar} aoCorridaLivre={corridaLivre} aoTrocarPerfil={aoTrocarPerfil} aoAbrirDieta={() => trocar('dieta')} />}
+          {aba === 'dieta' && <Dieta />}
           {aba === 'programa' && <Programa />}
           {aba === 'duelo' && <Duelo />}
           {aba === 'evolucao' && <Evolucao />}

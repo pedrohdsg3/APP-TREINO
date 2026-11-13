@@ -58,6 +58,23 @@ export interface RegistroCorpo {
   coxa?: number;
 }
 export interface Ajuste { chave: string; valor: unknown }
+/** Um alimento lançado no diário (nutrientes já calculados para a porção). */
+export interface RegistroAlimento {
+  id: string;
+  data: string;
+  refeicao: string;
+  alimentoId: string;
+  nome: string;
+  gramas: number;
+  /** medida escolhida (ex.: "colher de sopa") e quantas */
+  medida: string;
+  qtd: number;
+  kcal: number; p: number; c: number; g: number; fibra: number;
+  /** valores por 100 g, para recalcular ao mudar a quantidade */
+  por100: { kcal: number; p: number; c: number; g: number; fibra: number };
+  ts: number;
+}
+export interface RegistroAgua { data: string; ml: number }
 
 export type Banco = Dexie & {
   sessoes: EntityTable<Sessao, 'id'>;
@@ -65,6 +82,8 @@ export type Banco = Dexie & {
   corridas: EntityTable<RegistroCorrida, 'sessaoId'>;
   corpo: EntityTable<RegistroCorpo, 'data'>;
   ajustes: EntityTable<Ajuste, 'chave'>;
+  diario: EntityTable<RegistroAlimento, 'id'>;
+  agua: EntityTable<RegistroAgua, 'data'>;
 };
 
 export function criarBanco(nome: string): Banco {
@@ -80,6 +99,7 @@ export function criarBanco(nome: string): Banco {
     sessoes: 'id, data, tipo, status, treinoId',
     series: '++id, sessaoId, exercicioId, timestamp, [sessaoId+exercicioId]',
   });
+  b.version(3).stores({ diario: 'id, data, ts, alimentoId', agua: 'data' });
   return b;
 }
 

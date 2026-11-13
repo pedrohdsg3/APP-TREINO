@@ -4,9 +4,13 @@
 // o que outros aparelhos da mesma conta enviam chega em tempo real e é aplicado localmente.
 // Conflito: vale a versão mais recente (por registro).
 import Dexie from 'dexie';
-import type { Banco, RegistroCorpo, RegistroCorrida, RegistroSerie, Sessao, Ajuste } from '../db';
+import type { Banco, RegistroCorrida, RegistroSerie, Sessao } from '../db';
 
-export type Colecao = 'sessoes' | 'corpo' | 'ajustes';
+/** Coleções simples: um registro da tabela = um documento na nuvem. */
+export const SIMPLES = ['corpo', 'ajustes', 'diario', 'agua'] as const;
+type Simples = (typeof SIMPLES)[number];
+export type Colecao = 'sessoes' | Simples;
+export const COLECOES: Colecao[] = ['sessoes', ...SIMPLES];
 export type Dados = Record<string, unknown> & { versao: number; dispositivo: string; apagado?: boolean };
 
 /** Onde os dados ficam na nuvem (Firestore na vida real; memória nos testes). */
@@ -80,24 +84,29 @@ export class Sincronizador {
 
   /** Coloca na fila tudo o que existe no aparelho (primeira vinculação da conta). */
   async subirTudo(opcoes: { ajustes?: boolean } = {}) {
-    const [s, c, a] = await Promise.all([this.db.sessoes.toCollection().primaryKeys(), this.db.corpo.toCollection().primaryKeys(), this.db.ajustes.toCollection().primaryKeys()]);
-    for (const id of s) this.marcar(`sessoes|${id}`);
-    for (const id of c) this.marcar(`corpo|${id}`);
-    if (opcoes.ajustes !== false) for (const id of a) this.marcar(`ajustes|${id}`);
+    for (const col of COLECOES) {
+      if (col === 'ajustes' && opcoes.ajustes === false) continue;
+      for (const id of await this.db.table(col).toCollection().primaryKeys()) this.marcar(`${col}|${String(id)}`);
+    }
   }
 
   /** Envia a fila. Itens que falharem continuam na fila para a próxima tentativa. */
   async enviar(): Promise<void> {
     if (this.enviando || !this.pend.size) return;
     this.enviando = true; this.erro = undefined; this.avisar();
+    let falhou: Error | null = null;
     try {
+      // um item com erro não trava os outros: segue a fila e tenta de novo depois
       for (const k of [...this.pend]) {
-        const [col, id] = separar(k);
-        const dados = { ...(await this.montar(col, id)), versao: this.versoes[k] ?? Date.now(), dispositivo: this.dispositivo };
-        await this.backend.enviar(col, id, limpar(dados));
-        this.pend.delete(k);
-        this.salvar();
+        try {
+          const [col, id] = separar(k);
+          const dados = { ...(await this.montar(col, id)), versao: this.versoes[k] ?? Date.now(), dispositivo: this.dispositivo };
+          await this.backend.enviar(col, id, limpar(dados));
+          this.pend.delete(k);
+          this.salvar();
+        } catch (e) { falhou ??= e as Error; }
       }
+      if (falhou) throw falhou;
       this.ultimoEnvio = Date.now();
     } catch (e) {
       this.erro = (e as Error).message;
@@ -115,8 +124,7 @@ export class Sincronizador {
       const corrida = (await this.db.corridas.get(id)) ?? null;
       return { sessao, series, corrida };
     }
-    if (col === 'corpo') { const r = await this.db.corpo.get(id); return r ? { registro: r } : { apagado: true }; }
-    const r = await this.db.ajustes.get(id);
+    const r = await this.db.table(col).get(id);
     return r ? { registro: r } : { apagado: true };
   }
 
@@ -129,7 +137,7 @@ export class Sincronizador {
       return (dados.versao ?? 0) > (this.versoes[k] ?? 0);
     });
     if (!novos.length) return;
-    const tabelas = col === 'sessoes' ? [this.db.sessoes, this.db.series, this.db.corridas] : col === 'corpo' ? [this.db.corpo] : [this.db.ajustes];
+    const tabelas = col === 'sessoes' ? [this.db.sessoes, this.db.series, this.db.corridas] : [this.db.table(col)];
     await this.db.transaction('rw', tabelas, async () => {
       (Dexie.currentTransaction as unknown as Record<string, unknown>)[MARCA] = true;
       for (const { id, dados } of novos) {
@@ -140,10 +148,8 @@ export class Sincronizador {
           const series = (dados.series as Omit<RegistroSerie, 'id'>[]) ?? [];
           if (series.length) await this.db.series.bulkAdd(series as RegistroSerie[]);
           if (dados.corrida) await this.db.corridas.put(dados.corrida as RegistroCorrida); else await this.db.corridas.delete(id);
-        } else if (col === 'corpo') {
-          if (dados.apagado) await this.db.corpo.delete(id); else await this.db.corpo.put(dados.registro as RegistroCorpo);
         } else {
-          if (dados.apagado) await this.db.ajustes.delete(id); else await this.db.ajustes.put(dados.registro as Ajuste);
+          if (dados.apagado) await this.db.table(col).delete(id); else await this.db.table(col).put(dados.registro);
         }
       }
     });
@@ -156,7 +162,7 @@ export class Sincronizador {
     if (this.ativo) return;
     this.ativo = true;
     this.religar();
-    for (const col of ['sessoes', 'corpo', 'ajustes'] as Colecao[]) {
+    for (const col of COLECOES) {
       this.paradas.push(this.backend.ouvir(col, (docs) => { void this.aplicar(col, docs).catch((e) => { this.erro = (e as Error).message; this.avisar(); }); }, (e) => { this.erro = e.message; this.avisar(); }));
     }
     if (this.pend.size) this.agendar();
@@ -173,8 +179,7 @@ export class Sincronizador {
       [db.sessoes, (_o, chave) => k('sessoes', chave)],
       [db.series, (o) => (o?.sessaoId ? k('sessoes', o.sessaoId) : null)],
       [db.corridas, (_o, chave) => k('sessoes', chave)],
-      [db.corpo, (_o, chave) => k('corpo', chave)],
-      [db.ajustes, (_o, chave) => k('ajustes', chave)],
+      ...SIMPLES.map((col) => [db.table(col), (_o: unknown, chave: unknown) => k(col, chave)] as [Dexie.Table, (obj: Record<string, unknown>, chave: unknown) => Chave | null]),
     ];
     for (const [tabela, chaveDe] of lista) {
       const avisa = (chave: unknown, obj: Record<string, unknown>, tx: unknown) => { if (!remoto(tx)) { const c = chaveDe(obj, chave); if (c) queueMicrotask(() => this.marcar(c)); } };

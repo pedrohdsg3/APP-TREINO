@@ -1,12 +1,13 @@
-import { IcDuelo, IcEvolucao, IcHoje, IcPerfil, IcPrograma } from './Icones';
+import { IcDieta, IcDuelo, IcEvolucao, IcHoje, IcPerfil, IcPrograma } from './Icones';
 import { AvatarPerfil } from './Personagem';
 import { perfilAtual } from '../lib/perfis';
 
-export type Aba = 'hoje' | 'programa' | 'duelo' | 'evolucao' | 'perfil';
-export const ORDEM_ABAS: Aba[] = ['hoje', 'programa', 'duelo', 'evolucao', 'perfil'];
+export type Aba = 'hoje' | 'dieta' | 'programa' | 'duelo' | 'evolucao' | 'perfil';
+export const ORDEM_ABAS: Aba[] = ['hoje', 'dieta', 'programa', 'duelo', 'evolucao', 'perfil'];
 
 const ITENS: { aba: Aba; rotulo: string; Icone: typeof IcHoje }[] = [
   { aba: 'hoje', rotulo: 'Hoje', Icone: IcHoje },
+  { aba: 'dieta', rotulo: 'Dieta', Icone: IcDieta },
   { aba: 'programa', rotulo: 'Programa', Icone: IcPrograma },
   { aba: 'duelo', rotulo: 'Duelo', Icone: IcDuelo },
   { aba: 'evolucao', rotulo: 'Evolução', Icone: IcEvolucao },

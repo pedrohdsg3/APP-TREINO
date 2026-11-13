@@ -360,7 +360,7 @@ strong, .num { font-variant-numeric: tabular-nums; }
 .nav {
   position: fixed; left: 50%; bottom: 0; transform: translateX(-50%);
   width: 100%; max-width: 560px;
-  display: grid; grid-template-columns: repeat(5, 1fr);
+  display: grid; grid-template-columns: repeat(6, 1fr);
   padding: 6px 6px calc(env(safe-area-inset-bottom) + 6px);
   background: color-mix(in srgb, var(--superficie) 82%, transparent);
   backdrop-filter: blur(20px) saturate(1.6);
@@ -1118,3 +1118,73 @@ strong, .num { font-variant-numeric: tabular-nums; }
 .login__ver { display: flex; align-items: center; gap: 8px; font-size: 14px; color: var(--texto-2); }
 .login__ok { font-size: 14px; color: var(--texto-2); background: var(--superficie-2); padding: 10px 12px; border-radius: 12px; }
 #form-email .link { align-self: flex-start; padding: 0; }
+
+/* ---------------------------------------------------------------- dieta */
+.dia-nav { display: flex; align-items: center; gap: 8px; margin-top: 6px; flex-wrap: wrap; }
+.dia-nav .mini-btn { min-width: 40px; font-size: 18px; padding: 4px 10px; }
+.dia-nav .mini-btn:disabled { opacity: 0.35; }
+.dia-nav__data { font-weight: 700; font-size: 16px; min-width: 64px; text-align: center; }
+.resumo-dieta { display: flex; flex-direction: column; gap: 16px; }
+.resumo-dieta__topo { display: flex; align-items: center; gap: 18px; }
+.resumo-dieta__topo .anel__centro { flex-direction: column; line-height: 1.05; }
+.resumo-dieta__topo .anel__centro strong { font-size: 20px; font-weight: 800; }
+.resumo-dieta__topo .anel__centro small { font-size: 11px; color: var(--texto-3); font-weight: 700; }
+.resumo-dieta__texto { display: flex; flex-direction: column; gap: 2px; align-items: flex-start; }
+.resumo-dieta__texto strong { font-size: 19px; font-weight: 800; letter-spacing: -0.01em; }
+.resumo-dieta__texto .link { padding: 4px 0 0; }
+.macros { display: grid; grid-template-columns: repeat(3, 1fr); gap: 12px; }
+.macro { display: flex; flex-direction: column; gap: 4px; }
+.macro span { font-size: 11.5px; color: var(--texto-3); font-weight: 700; text-transform: uppercase; letter-spacing: 0.04em; }
+.macro strong { font-size: 17px; font-weight: 800; }
+.macro strong small { font-size: 12px; color: var(--texto-3); font-weight: 650; }
+.macro .barra-meta i { background: var(--corr); }
+.macro--c .barra-meta i { background: var(--ouro); }
+.macro--g .barra-meta i { background: var(--coral); }
+.agua { display: flex; flex-direction: column; gap: 10px; }
+.agua__topo { display: flex; justify-content: space-between; align-items: baseline; }
+.agua__topo strong { font-size: 17px; }
+.agua__copos { display: flex; flex-wrap: wrap; gap: 5px; }
+.agua__copos span { width: 16px; height: 22px; border-radius: 3px 3px 6px 6px; background: var(--superficie-2); border: 1.5px solid color-mix(in srgb, #3B82F6 35%, transparent); }
+.agua__copos span.cheio { background: color-mix(in srgb, #3B82F6 70%, white); border-color: #3B82F6; }
+.agua__botoes { display: flex; gap: 8px; align-items: center; flex-wrap: wrap; }
+.refeicoes { display: flex; flex-direction: column; gap: 12px; }
+.refeicao { display: flex; flex-direction: column; gap: 6px; }
+.refeicao__topo { display: flex; justify-content: space-between; align-items: baseline; }
+.refeicao__topo h3 { font-size: 16.5px; font-weight: 750; }
+.refeicao__kcal { font-weight: 750; color: var(--texto-2); font-size: 14.5px; }
+.refeicao__lista { list-style: none; padding: 0; display: flex; flex-direction: column; }
+.item-alimento { width: 100%; display: grid; grid-template-columns: 1fr auto; column-gap: 12px; text-align: left; padding: 9px 0; border-bottom: 1px solid var(--borda); }
+.item-alimento__nome { font-size: 14.5px; font-weight: 600; }
+.item-alimento__qtd { grid-column: 1; font-size: 12.5px; color: var(--texto-3); }
+.item-alimento__kcal { grid-column: 2; grid-row: 1 / span 2; align-self: center; font-weight: 750; font-size: 14px; color: var(--texto-2); }
+.refeicao__macros { font-size: 12.5px; color: var(--texto-3); }
+.refeicao__add { align-self: flex-start; color: var(--corr-forte); font-weight: 700; font-size: 14.5px; padding: 8px 0 2px; min-height: 40px; }
+.busca { width: 100%; font: inherit; font-size: 16px; padding: 14px 16px; border-radius: 14px; border: 1px solid var(--borda); background: var(--superficie-2); color: var(--texto); }
+.lista-alimentos { list-style: none; padding: 0; display: flex; flex-direction: column; }
+.lista-alimentos button { width: 100%; text-align: left; display: flex; flex-direction: column; gap: 2px; padding: 11px 2px; border-bottom: 1px solid var(--borda); min-height: 52px; }
+.lista-alimentos__nome { font-weight: 650; font-size: 15px; }
+.lista-alimentos__info { font-size: 12.5px; color: var(--texto-3); }
+.quantidade { display: flex; flex-direction: column; gap: 12px; }
+.porcao, .sugestao-metas { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; background: var(--corr-suave); border-radius: 14px; padding: 12px 8px; text-align: center; }
+.sugestao-metas { grid-template-columns: repeat(5, 1fr); }
+.porcao div, .sugestao-metas div { display: flex; flex-direction: column; }
+.porcao strong, .sugestao-metas strong { font-size: 17px; font-weight: 800; color: var(--corr-texto); }
+.porcao span, .sugestao-metas span { font-size: 11px; color: var(--texto-2); font-weight: 650; }
+.grade-2 { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+.metas-dieta .opcoes { flex-direction: row; flex-wrap: wrap; }
+.metas-dieta .opcao { flex: 1 1 140px; min-height: 52px; padding: 10px 12px; }
+.dieta-hoje { display: flex; align-items: center; gap: 14px; }
+.dieta-hoje__texto { flex: 1; display: flex; flex-direction: column; gap: 2px; }
+.dieta-hoje__texto h3 { font-size: 16px; font-weight: 750; }
+.dieta-hoje__texto p { font-size: 13.5px; color: var(--texto-2); }
+.dieta-hoje__n { font-size: 14px; font-weight: 800; }
+.dieta-sem-meta { display: flex; flex-direction: column; gap: 10px; }
+@media (min-width: 1024px) {
+  .tela--dieta { display: grid; grid-template-columns: 1fr 1fr; gap: 16px; align-items: start; }
+  .tela--dieta > .cabecalho, .tela--dieta > .rodape { grid-column: 1 / -1; }
+  .tela--dieta > .refeicoes { grid-column: 2; grid-row: 2 / span 3; }
+}
+.grade-2 .stepper__linha { grid-template-columns: 42px 1fr 42px !important; }
+.grade-2 .stepper__btn { height: 48px !important; font-size: 22px; }
+.grade-2 .stepper__valor input { font-size: 22px; }
+.grade-2 .stepper__valor small { font-size: 11px; }

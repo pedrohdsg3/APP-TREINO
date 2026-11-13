@@ -1,5 +1,6 @@
 import { useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
+import { CardDietaHoje } from './Dieta';
 import { db } from '../db';
 import { Anel, Botao, Card, Chip } from '../ui/Componentes';
 import { IcBalanca, IcChama, IcHalter, IcPlay, IcRelogio, IcTenis, IcTrofeu } from '../ui/Icones';
@@ -25,7 +26,7 @@ function quando(data: string, hoje: string) {
 
 export type ModoInicio = 'principal' | 'musculacao' | 'cardio';
 
-export function Hoje({ aoIniciar, aoCorridaLivre, aoTrocarPerfil }: { aoIniciar: (p: DiaPlanejado, modo: ModoInicio) => void; aoCorridaLivre: () => void; aoTrocarPerfil: () => void }) {
+export function Hoje({ aoIniciar, aoCorridaLivre, aoTrocarPerfil, aoAbrirDieta }: { aoIniciar: (p: DiaPlanejado, modo: ModoInicio) => void; aoCorridaLivre: () => void; aoTrocarPerfil: () => void; aoAbrirDieta?: () => void }) {
   const cfg = useConfigPrograma();
   const hoje = isoLocal();
   const sessoes = useLiveQuery(() => db.sessoes.toArray(), []) ?? [];
@@ -114,6 +115,8 @@ export function Hoje({ aoIniciar, aoCorridaLivre, aoTrocarPerfil }: { aoIniciar:
           <p className="sutil">Confira sua evolução e, se quiser, reinicie o programa em Perfil.</p>
         </Card>
       )}
+
+      {aoAbrirDieta && <CardDietaHoje aoAbrir={aoAbrirDieta} />}
 
       {pos.estado === 'durante' && (
         <Card className="meta entra">
