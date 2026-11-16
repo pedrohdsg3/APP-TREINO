@@ -191,14 +191,16 @@ const TREINOS_FEMININO: Record<string, TreinoMusculacao> = {
 export const PLANO_FEMININO: DefinicaoPlano = {
   id: 'feminino',
   nome: 'Inferiores em foco · 4× + 2 corridas',
-  descricao: 'Volta aos treinos começando leve: 2 dias de pernas/glúteos, 2 de superiores com glúteo e abdômen, e corrida progressiva.',
+  descricao: 'Volta aos treinos começando leve: 2 dias de pernas/glúteos, 2 de superiores com glúteo e abdômen, e corrida progressiva — nos mesmos dias do Pedro.',
+  // Alinhado com o Pedro (16/11/2026): superiores no mesmo dia que os dele (seg/sex), corridas nos mesmos
+  // dias (ter/qui) e perna junto na quarta. O intervalado fica antes da perna e o trote base, depois.
   semana: [
-    { musculacao: 'inferior-a', cardio: true },
-    { corrida: 'base' },
     { musculacao: 'superior-a', cardio: true },
     { corrida: 'intervalada' },
-    { musculacao: 'inferior-b', cardio: true },
+    { musculacao: 'inferior-a', cardio: true },
+    { corrida: 'base' },
     { musculacao: 'superior-b', cardio: true },
+    { musculacao: 'inferior-b', cardio: true },
     { descanso: true, cardio: true },
   ],
   treinos: TREINOS_FEMININO,

@@ -14,8 +14,14 @@ describe('plano feminino', () => {
     const tipos = Array.from({ length: 7 }, (_, d) => { const p = diaPlanejado(1, d); return p.descanso ? 'descanso' : p.tipoPrincipal; });
     expect(tipos).toEqual(['musculacao', 'corrida', 'musculacao', 'corrida', 'musculacao', 'musculacao', 'descanso']);
     expect(treinosPorSemana()).toBe(6);
-    // mesmas corridas de terça e quinta que o Pedro
-    expect(diaPlanejado(3, 1).corrida!.resumo).toBe((usarPlano(PLANO_PEDRO), diaPlanejado(3, 1).corrida!.resumo));
+    // alinhado com o Pedro: superiores seg/sex, corridas ter/qui, perna junto na quarta
+    expect([0, 4].map((d) => diaPlanejado(1, d).musculacao!.id)).toEqual(['superior-a', 'superior-b']);
+    expect([1, 3].map((d) => diaPlanejado(1, d).corrida!.tipo)).toEqual(['intervalada', 'base']);
+    expect(diaPlanejado(1, 2).musculacao!.id).toBe('inferior-a');
+    usarPlano(PLANO_PEDRO);
+    expect([0, 4].map((d) => diaPlanejado(1, d).musculacao!.id)).toEqual(['superior-a-pedro', 'superior-b-pedro']);
+    expect([1, 3].every((d) => !!diaPlanejado(1, d).corrida)).toBe(true);
+    expect(diaPlanejado(1, 2).musculacao!.id).toBe('inferior-pedro');
   });
   it('todos os exercícios existem no catálogo', () => {
     usarPlano(PLANO_FEMININO);
@@ -25,7 +31,7 @@ describe('plano feminino', () => {
   });
   it('começa em 3×10 (8–10) em todos os exercícios e progride: 4×10 → 4×8; recuperação com menos séries', () => {
     usarPlano(PLANO_FEMININO);
-    const pr = (s: number) => diaPlanejado(s, 0).musculacao!.itens.find((i) => i.exercicioId === 'leg-press')!;
+    const pr = (s: number) => diaPlanejado(s, 2).musculacao!.itens.find((i) => i.exercicioId === 'leg-press')!;
     expect(pr(1)).toMatchObject({ series: 3, reps: 10, repsMin: 8, cargaPct: 100 });
     for (const d of [0, 2, 4, 5]) {
       for (const it of diaPlanejado(1, d).musculacao!.itens.filter((i) => i.descanso !== 45)) expect(it, it.exercicioId).toMatchObject({ series: 3, reps: 10, repsMin: 8 });
@@ -38,8 +44,8 @@ describe('plano feminino', () => {
     usarPlano(PLANO_FEMININO);
     const comGluteo = [0, 2, 4, 5].filter((d) => diaPlanejado(5, d).musculacao!.grupos.includes('Glúteos'));
     expect(comGluteo.length).toBeGreaterThanOrEqual(3);
-    expect(diaPlanejado(1, 0).musculacao!.itens[0].exercicioId).toBe('agachamento-goblet');
-    expect(diaPlanejado(5, 0).musculacao!.itens[0].exercicioId).toBe('agachamento');
+    expect(diaPlanejado(1, 2).musculacao!.itens[0].exercicioId).toBe('agachamento-goblet');
+    expect(diaPlanejado(5, 2).musculacao!.itens[0].exercicioId).toBe('agachamento');
   });
   it('sem drop-set no começo; drop só nas máquinas nas semanas 10–11', () => {
     usarPlano(PLANO_FEMININO);
