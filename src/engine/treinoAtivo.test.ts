@@ -84,3 +84,26 @@ describe('cargas iniciais', () => {
     expect(rec.exercicios[0].series[0].carga).toBe(45);
   });
 });
+
+import { concluirSerie as __concluir, parceiroBiset } from './treinoAtivo';
+import { PLANO_PEDRO as __PEDRO } from '../data/planos';
+describe('biset', () => {
+  it('rosca → tríceps sem descanso; descansa ao fechar a rodada; tríceps faz a 5ª série sozinho', () => {
+    __usarPlano(__PEDRO);
+    const p = diaPlanejado(1, 0).musculacao!; // Superior A
+    let t = montarTreino(p, { sessaoId: 'b', data: '2026-11-16', semana: 1, agora: 0, historico: {} });
+    const r = t.exercicios.findIndex((e) => e.item.exercicioId === 'rosca-direta');
+    const c = t.exercicios.findIndex((e) => e.item.exercicioId === 'triceps-corda');
+    expect(parceiroBiset(t, r)).toBe(c);
+    t = { ...t, atual: r };
+    for (let rodada = 0; rodada < 4; rodada++) {
+      t = __concluir(t, r, rodada, 1000, 60).treino;
+      expect(t.atual).toBe(c); expect(t.descanso).toBeUndefined();
+      t = __concluir(t, c, rodada, 2000, 60).treino;
+      expect(t.descanso).toBeDefined();
+      expect(t.atual).toBe(rodada < 3 ? r : c);
+    }
+    t = __concluir(t, c, 4, 3000, 60).treino;
+    expect(t.exercicios[c].series.every((s) => s.feita)).toBe(true);
+  });
+});

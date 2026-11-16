@@ -6,7 +6,7 @@ import { ESFORCO_FASE, orientacaoSerie } from '../engine/metodologia';
 import { fmtKg, passoCarga } from '../engine/progressao';
 import {
   AQUECIMENTO, adicionarSerie, ajustarAquecimento, ajustarDescanso, ajustarSerie, alternativas, aquecimentoPendente, concluirAquecimento,
-  concluirSerie, desfazerAquecimento, desfazerSerie, pularAquecimento,
+  concluirSerie, desfazerAquecimento, desfazerSerie, parBiset, pularAquecimento,
   exConcluido, fazerAgora, gravarTreinoAtivo, proximoPendente, pularExercicio, removerSerie, resumir,
   seriesFeitas, treinoConcluido, trocarExercicio, type TreinoAtivo,
 } from '../engine/treinoAtivo';
@@ -184,8 +184,9 @@ function Exercicios({ t, atualizar, agora, aoSair, aoPR }: PropsEtapa & { agora:
     const descanso = descansoDe(e.item.exercicioId, e.item.descanso);
     const { treino, pr } = concluirSerie(t, t.atual, si, Date.now(), descanso);
     let novo = treino;
-    // terminou o exercício? avança para o próximo pendente (o descanso continua valendo)
-    if (exConcluido(novo.exercicios[t.atual])) {
+    // terminou o exercício? avança para o próximo pendente (o descanso continua valendo).
+    // (no biset o motor já pode ter mudado para o parceiro)
+    if (exConcluido(novo.exercicios[novo.atual])) {
       const prox = proximoPendente(novo);
       if (prox !== undefined) novo = { ...novo, atual: prox };
     }
@@ -224,6 +225,9 @@ function Exercicios({ t, atualizar, agora, aoSair, aoPR }: PropsEtapa & { agora:
             {e.item.cargaPct < 100 && <span className="sutil"> · carga ~{e.item.cargaPct}%</span>}
           </p>
           {e.planejado !== e.item.exercicioId && <p className="sutil">Substituindo {EXERCICIOS[e.planejado].nome}</p>}
+          {(() => { const par = parBiset(t, t.atual); return par ? (
+            <p className="biset-aviso">🔁 <strong>Biset</strong> com {EXERCICIOS[par.item.exercicioId].nome}: faça um seguido do outro e descanse só depois do par.</p>
+          ) : null; })()}
           <div className="dica-linha">
             <button className="dica" onClick={() => setMostraDica((v) => !v)} aria-expanded={mostraDica}>
               💡 {mostraDica ? ex.dica : 'Dica técnica'}

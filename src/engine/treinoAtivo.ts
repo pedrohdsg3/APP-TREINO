@@ -126,7 +126,25 @@ export const seriesFeitas = (e: ExAtivo) => e.series.filter((s) => s.feita).leng
 export const exConcluido = (e: ExAtivo) => e.series.every((s) => s.feita);
 export const treinoConcluido = (t: TreinoAtivo) => t.exercicios.every(exConcluido);
 
-/** Conclui a série, detecta PR e inicia o descanso (exceto quando o treino terminou). */
+/** Índice do outro exercício do biset (se houver e ainda tiver séries pendentes). */
+export function parceiroBiset(t: TreinoAtivo, ei: number): number | undefined {
+  const marca = t.exercicios[ei]?.item.biset;
+  if (!marca) return undefined;
+  const j = t.exercicios.findIndex((x, k) => k !== ei && x.item.biset === marca && !exConcluido(x));
+  return j >= 0 ? j : undefined;
+}
+
+/** Nome do outro exercício do biset (mesmo que já concluído), para exibir. */
+export function parBiset(t: TreinoAtivo, ei: number): ExAtivo | undefined {
+  const marca = t.exercicios[ei]?.item.biset;
+  return marca ? t.exercicios.find((x, k) => k !== ei && x.item.biset === marca) : undefined;
+}
+
+/**
+ * Conclui a série, detecta PR e inicia o descanso (exceto quando o treino terminou).
+ * Biset: se o parceiro está "atrasado" nesta rodada, vai direto para ele sem descanso;
+ * ao fechar a rodada, descansa e volta para o primeiro do par.
+ */
 export function concluirSerie(t: TreinoAtivo, ei: number, si: number, agora: number, descansoSeg: number): { treino: TreinoAtivo; pr?: PR } {
   const e = t.exercicios[ei];
   const s = e.series[si];
@@ -137,6 +155,14 @@ export function concluirSerie(t: TreinoAtivo, ei: number, si: number, agora: num
   // mantém só o melhor PR por exercício
   if (pr) novo = { ...novo, prs: [...novo.prs.filter((p) => p.exercicioId !== pr.exercicioId), pr] };
   const acabou = treinoConcluido(novo);
+  const par = parceiroBiset(novo, ei);
+  if (par !== undefined && !acabou) {
+    const feitasEu = seriesFeitas(novo.exercicios[ei]), feitasPar = seriesFeitas(novo.exercicios[par]);
+    if (feitasPar < feitasEu) return { treino: { ...novo, atual: par, descanso: undefined }, pr };
+    // rodada fechada: descansa e começa a próxima pelo primeiro do par
+    const primeiro = exConcluido(novo.exercicios[ei]) ? par : Math.min(ei, par);
+    return { treino: { ...novo, atual: primeiro, descanso: { fim: agora + descansoSeg * 1000, total: descansoSeg } }, pr };
+  }
   novo = { ...novo, descanso: acabou ? undefined : { fim: agora + descansoSeg * 1000, total: descansoSeg } };
   return { treino: novo, pr };
 }

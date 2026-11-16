@@ -216,7 +216,12 @@ export function musculacaoPlanejada(id: TreinoMusculacaoId, semana: number, op: 
   });
   const grupos = [...new Set(itens.map((it) => EXERCICIOS[it.exercicioId].grupo))];
   // estimativa: 45 s por série + descanso, ~2' de troca/ajuste por exercício, + 5' de aquecimento
-  const seg = itens.reduce((s, it) => s + it.series * (45 + it.descanso) + 120, 0) + (id === 'abdomen' ? 0 : 300);
+  let seg = itens.reduce((s, it) => s + it.series * (45 + it.descanso) + 120, 0) + (id === 'abdomen' ? 0 : 300);
+  // biset: o primeiro do par não descansa (vai direto para o segundo)
+  itens.forEach((it, k) => {
+    const par = it.biset ? itens.findIndex((x, j) => j > k && x.biset === it.biset) : -1;
+    if (par >= 0) seg -= Math.min(it.series, itens[par].series) * it.descanso + 60;
+  });
   return { id, titulo: t.titulo, itens, grupos, minutos: Math.round(seg / 60) };
 }
 

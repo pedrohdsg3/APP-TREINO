@@ -76,7 +76,7 @@ function BlocoMusculacao({ m, pct }: { m: MusculacaoPlanejada; pct: number }) {
                 <strong>{ex.nome}</strong>
                 <span>{ex.grupo} · descanso {it.descanso} s · <u>como fazer</u></span>
               </button>
-              <span className="lista-exercicios__presc">{prescricao(it)}</span>
+              <span className="lista-exercicios__presc">{prescricao(it)}{it.biset ? <small className="biset-tag">biset</small> : null}</span>
             </li>
           );
         })}

@@ -87,7 +87,7 @@ describe('cardio leve', () => {
     for (const d of [0, 2, 3, 4]) for (const it of diaPlanejado(1, d).musculacao!.itens) {
       const g = EXERCICIOS[it.exercicioId].grupo; series[g] = (series[g] ?? 0) + it.series;
     }
-    expect(series).toMatchObject({ Peito: 15, Costas: 15, Ombro: 15, 'Bíceps': 10, 'Tríceps': 11, 'Quadríceps': 12, Posterior: 8, Panturrilha: 4 });
+    expect(series).toMatchObject({ Peito: 15, Costas: 15, Ombro: 16, 'Bíceps': 10, 'Tríceps': 10, 'Quadríceps': 12, Posterior: 8, Panturrilha: 4 });
   });
 });
 

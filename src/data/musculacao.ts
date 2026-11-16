@@ -30,6 +30,8 @@ export interface ItemTreino {
   descanso?: number; // sobrescreve o padrão
   /** texto extra exibido junto à prescrição (ex.: "cada lado") */
   obs?: string;
+  /** exercícios com a mesma marca formam um biset: um seguido do outro, descanso só depois do par */
+  biset?: string;
 }
 
 export const EXERCICIOS: Record<string, Exercicio> = Object.fromEntries(([
@@ -116,8 +118,9 @@ export const TREINOS_MUSCULACAO: Record<string, TreinoMusculacao> = {
       i('pulldown', 4, 12),
       i('desenvolvimento-halter', 4, 10),
       i('elevacao-lateral', 4, 12),
-      i('rosca-direta', 4, 10),
-      i('triceps-corda', 4, 12),
+      // biset: rosca → tríceps sem descanso; descansa depois do par
+      i('rosca-direta', 4, 10, { biset: 'bracos' }),
+      i('triceps-corda', 5, 12, { biset: 'bracos' }),
     ],
   },
   'inferior-pedro': {
@@ -130,8 +133,8 @@ export const TREINOS_MUSCULACAO: Record<string, TreinoMusculacao> = {
       i('stiff', 4, 10),
       i('flexora', 4, 12),
       i('panturrilha', 4, 15),
-      i('abd-remador', 4, 15, { descanso: 45 }),
-      i('prancha', 3, 45, { descanso: 60 }),
+      i('abd-remador', 4, 15, { descanso: 60, biset: 'abdomen' }),
+      i('prancha', 3, 45, { descanso: 60, biset: 'abdomen' }),
     ],
   },
   'superior-b-pedro': {
@@ -139,14 +142,13 @@ export const TREINOS_MUSCULACAO: Record<string, TreinoMusculacao> = {
     titulo: 'Superior B · Peito, costas, ombro e braços',
     itens: (s) => [
       i('supino-inclinado-halter', 4, 10),
-      // Semanas ímpares: peito superior (crucifixo inclinado). Pares: miolo (peck deck).
-      s % 2 === 1 ? i('crucifixo-inclinado', 4, 12) : i('peck-deck', 4, 12),
+      // biset: crucifixo (peito) → crucifixo inverso (posterior de ombro). Semanas ímpares: crucifixo inclinado; pares: peck deck.
+      s % 2 === 1 ? i('crucifixo-inclinado', 4, 12, { biset: 'crucifixos' }) : i('peck-deck', 4, 12, { biset: 'crucifixos' }),
+      i('crucifixo-inverso', 4, 15, { biset: 'crucifixos' }),
       i('barra-fixa', 4, 8),
       i('remada-unilateral', 3, 10),
       i('elevacao-lateral', 4, 12),
-      i('crucifixo-inverso', 3, 15),
-      i('triceps-testa', 4, 10),
-      i('mergulho', 3, 0, { obs: 'até perto da falha' }),
+      i('triceps-testa', 5, 10),
       i('rosca-alternada', 3, 12),
       i('rosca-martelo', 3, 12),
     ],
