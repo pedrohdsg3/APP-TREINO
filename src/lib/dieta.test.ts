@@ -59,7 +59,9 @@ describe('plural das medidas', () => {
   it('flexiona só a primeira palavra', () => {
     expect(plural('unidade', 2)).toBe('unidades');
     expect(plural('colher de sopa', 3)).toBe('colheres de sopa');
-    expect(plural('filé médio', 2)).toBe('filés médio');
+    expect(plural('filé médio', 2)).toBe('filés médios');
+    expect(plural('batata média', 2)).toBe('batatas médias');
+    expect(plural('colher de sopa cheia', 2)).toBe('colheres de sopa cheia');
     expect(plural('pedaço médio', 1)).toBe('pedaço médio');
     expect(plural('pegador', 1.5)).toBe('pegadores');
   });

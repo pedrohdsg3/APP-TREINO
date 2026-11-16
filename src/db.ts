@@ -73,6 +73,8 @@ export interface RegistroAlimento {
   /** valores por 100 g, para recalcular ao mudar a quantidade */
   por100: { kcal: number; p: number; c: number; g: number; fibra: number };
   ts: number;
+  /** lançado pelo plano alimentar ("refeicao:opcao"), para poder desfazer */
+  plano?: string;
 }
 export interface RegistroAgua { data: string; ml: number }
 

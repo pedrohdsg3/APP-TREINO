@@ -161,3 +161,12 @@ export async function lerMetas(): Promise<MetasDieta | undefined> {
 export async function salvarMetas(m: MetasDieta) {
   await db.ajustes.put({ chave: 'metasDieta', valor: m });
 }
+
+/** "2 colher de sopa" → "2 colheres de sopa"; "2 batata média" → "2 batatas médias" (1ª palavra e adjetivo de tamanho). */
+export function plural(medida: string, qtd: number) {
+  if (qtd <= 1) return medida;
+  const pl = (w: string) => (/[rz]$/.test(w) ? `${w}es` : /ão$/.test(w) ? w.replace(/ão$/, 'ões') : /l$/.test(w) ? w.replace(/l$/, 'is') : /[aeiouáéíóúê]$/.test(w) ? `${w}s` : w);
+  const [primeira, ...resto] = medida.split(' ');
+  const adj = /^(médi[ao]|pequen[ao]|grande|cheia|cheio|fina|fino|rasa|raso)$/;
+  return [pl(primeira), ...resto.map((w, i) => (i === 0 && adj.test(w) ? pl(w) : w))].join(' ');
+}

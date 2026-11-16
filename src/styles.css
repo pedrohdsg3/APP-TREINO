@@ -1200,3 +1200,41 @@ strong, .num { font-variant-numeric: tabular-nums; }
 .acoes-fixas { position: sticky; bottom: 0; display: flex; flex-direction: column; gap: 8px; padding: 12px 0 4px; margin-top: 4px; background: linear-gradient(to bottom, transparent, var(--fundo) 14px); z-index: 2; }
 .biset-aviso { font-size: 13.5px; color: var(--musc-texto); background: var(--musc-suave); border-radius: 12px; padding: 8px 12px; margin-top: 6px; }
 .biset-tag { margin-left: 6px; font-size: 10px; font-weight: 800; text-transform: uppercase; letter-spacing: 0.05em; color: var(--musc-texto); background: var(--musc-suave); padding: 2px 6px; border-radius: 6px; }
+/* plano alimentar */
+.plano-ref { background: var(--superficie-2); border-radius: 14px; padding: 10px 12px; display: flex; flex-direction: column; gap: 8px; }
+.plano-ref--segui { background: var(--corr-suave); color: var(--corr-texto); flex-direction: row; justify-content: space-between; align-items: center; font-weight: 700; font-size: 14px; }
+.plano-ref--parcial { background: var(--ouro-suave); flex-direction: row; justify-content: space-between; align-items: center; font-weight: 700; font-size: 14px; }
+.plano-ref--nao { flex-direction: row; justify-content: space-between; align-items: center; font-weight: 700; font-size: 14px; color: var(--texto-2); }
+.plano-ref .link { padding: 0; font-size: 13px; }
+.plano-ref__cab { display: flex; justify-content: space-between; align-items: center; gap: 8px; width: 100%; text-align: left; font-weight: 750; font-size: 14.5px; min-height: 32px; }
+.plano-ref__kcal { font-size: 12.5px; color: var(--texto-2); font-weight: 650; white-space: nowrap; }
+.plano-ref__itens { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.plano-ref__itens li { display: flex; align-items: center; justify-content: space-between; gap: 8px; }
+.plano-ref__itens strong { display: block; font-size: 14px; font-weight: 650; }
+.plano-ref__itens small { font-size: 12px; color: var(--texto-3); }
+.plano-ref__acoes { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+.plano-ref__acoes .btn { min-height: 44px; padding: 8px 6px; font-size: 14px; }
+.mini-btn--on { background: var(--corr-suave); color: var(--corr-texto); }
+.chips-sel--rolagem { flex-wrap: nowrap; overflow-x: auto; padding-bottom: 4px; scrollbar-width: none; }
+.chips-sel--rolagem .chip-sel { white-space: nowrap; flex: none; }
+.lista-trocas { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.troca { width: 100%; text-align: left; display: flex; flex-direction: column; gap: 2px; padding: 12px 14px; border-radius: 14px; background: var(--superficie); border: 1px solid var(--borda); }
+.troca strong { font-size: 15px; } .troca span { font-size: 12.5px; color: var(--texto-2); } .troca small { font-size: 12px; color: var(--coral); }
+.troca--on { border: 2px solid var(--corr); background: var(--corr-suave); }
+.prato__item { text-align: left; font-size: 14px; font-weight: 600; flex: 1; }
+.plano-card { display: flex; flex-direction: column; gap: 8px; }
+.plano-card__botoes { display: grid; grid-template-columns: 1fr 1fr; gap: 8px; }
+.opcao-plano { border: 1px solid var(--borda); background: var(--superficie); border-radius: 16px; padding: 12px; display: flex; flex-direction: column; gap: 8px; }
+.opcao-plano__topo { display: flex; flex-direction: column; gap: 2px; }
+.opcao-plano__nome { font: inherit; font-weight: 750; font-size: 16px; border: 0; background: transparent; color: var(--texto); padding: 2px 0; border-bottom: 1px dashed var(--borda); }
+.opcao-plano__itens { list-style: none; padding: 0; display: flex; flex-direction: column; gap: 8px; }
+.opcao-plano__itens li { display: grid; grid-template-columns: 1fr 150px auto; align-items: center; gap: 8px; }
+.opcao-plano__item strong { display: block; font-size: 13.5px; font-weight: 650; }
+.opcao-plano__item small { font-size: 12px; color: var(--texto-3); }
+.opcao-plano__itens .stepper__rotulo { display: none; }
+.opcao-plano__itens .stepper__linha { grid-template-columns: 34px 1fr 34px !important; }
+.opcao-plano__itens .stepper__btn { height: 38px !important; font-size: 18px; }
+.opcao-plano__itens .stepper__valor input { font-size: 16px; }
+.opcao-plano__acoes { display: flex; gap: 14px; flex-wrap: wrap; }
+.opcao-plano__acoes .link { padding: 4px 0; }
+.plano-ref__itens .mini-btn { white-space: nowrap; flex: none; }

@@ -1,19 +1,22 @@
 // Dieta: metas do dia, diário por refeição (TACO) e água.
-import { useEffect, useMemo, useState } from 'react';
+import { useEffect, useState } from 'react';
 import { useLiveQuery } from 'dexie-react-hooks';
 import { db, type RegistroAlimento } from '../db';
 import { type Medida } from '../data/medidas';
 import {
-  alterarQuantidade, apagarLancamento, ATIVIDADES, buscar, calcularMetas, carregarBase, lancar, medidasPara, lerMetas, moverRefeicao, OBJETIVOS, porcao,
-  recentes, REFEICOES, salvarMetas, somar, somarAgua, type Alimento, type DadosCorpo, type MetasDieta, type RefeicaoId,
+  alterarQuantidade, apagarLancamento, ATIVIDADES, calcularMetas, carregarBase, medidasPara, lerMetas, moverRefeicao, OBJETIVOS, porcao,
+  REFEICOES, salvarMetas, somar, somarAgua, type DadosCorpo, type MetasDieta, type RefeicaoId,
 } from '../lib/dieta';
 import { dataPorExtenso, isoLocal, somarDias } from '../lib/datas';
 import { perfilAtual } from '../lib/perfis';
 import { Anel, Botao, Card, Segmentado } from '../ui/Componentes';
 import { Folha } from '../ui/Folha';
 import { Stepper } from '../ui/Stepper';
+import { EditorPlano, MeusAlimentos, PlanoNaRefeicao } from './DietaPlano';
+import { lerPlano, semearPlanoPedro } from '../lib/planoAlimentar';
+import { AdicionarAlimento, fmt, Quantidade, EscolherRefeicao, textoQtd } from '../ui/Alimentos';
+export { plural } from '../ui/Alimentos';
 
-const fmt = (n: number, casas = 0) => n.toLocaleString('pt-BR', { maximumFractionDigits: casas });
 const litros = (ml: number) => `${fmt(ml / 1000, 2)} L`;
 
 export function Dieta() {
@@ -25,6 +28,12 @@ export function Dieta() {
   const [adicionar, setAdicionar] = useState<RefeicaoId | null>(null);
   const [editar, setEditar] = useState<RegistroAlimento | null>(null);
   const [abrirMetas, setAbrirMetas] = useState(false);
+  const plano = useLiveQuery(lerPlano, []);
+  const [editorPlano, setEditorPlano] = useState(false);
+  const [meusAlimentos, setMeusAlimentos] = useState(false);
+  // Pedro: dieta de ~2.250 kcal cadastrada uma vez (16/11/2026)
+  useEffect(() => { if (perfilAtual().personagem === 'pedro') void semearPlanoPedro(); }, []);
+  const opcoesDe = (id: string) => plano?.refeicoes.find((r) => r.refeicao === id)?.opcoes.filter((o) => o.itens.length) ?? [];
 
   const total = somar(itens);
   const porRefeicao = (id: string) => itens.filter((i) => i.refeicao === id);
@@ -63,6 +72,7 @@ export function Dieta() {
                 <h3><span aria-hidden="true">{r.emoji}</span> {r.nome}</h3>
                 {!!l.length && <span className="refeicao__kcal">{fmt(t.kcal)} kcal</span>}
               </div>
+              {!!opcoesDe(r.id).length && <PlanoNaRefeicao key={data + r.id} data={data} refeicao={r.id} opcoes={opcoesDe(r.id)} />}
               {!!l.length && (
                 <ul className="refeicao__lista">
                   {l.map((i) => (
@@ -83,7 +93,23 @@ export function Dieta() {
         })}
       </div>
 
-      <p className="rodape">Valores nutricionais: TACO — Tabela Brasileira de Composição de Alimentos (NEPA/UNICAMP, 4ª ed.). Medidas caseiras são aproximadas.</p>
+      <Card className="entra plano-card">
+        <h3 className="card__titulo">📋 Plano alimentar</h3>
+        <p className="sutil">{plano ? plano.nome : 'Cadastre um cardápio (ex.: o do nutricionista) com opções e substituições, e marque cada refeição como seguida.'}</p>
+        <div className="plano-card__botoes">
+          <Botao variante="secundario" onClick={() => setEditorPlano(true)}>{plano ? 'Editar plano' : 'Criar plano'}</Botao>
+          <Botao variante="secundario" onClick={() => setMeusAlimentos(true)}>Meus alimentos</Botao>
+        </div>
+      </Card>
+
+      <p className="rodape">Valores nutricionais: TACO (NEPA/UNICAMP, 4ª ed.) e IBGE (POF 2008-2009, composição e medidas referidas). Medidas caseiras são aproximadas.</p>
+
+      <Folha aberta={editorPlano} aoFechar={() => setEditorPlano(false)} titulo="Plano alimentar">
+        {editorPlano && <EditorPlano plano={plano ?? undefined} aoFechar={() => setEditorPlano(false)} />}
+      </Folha>
+      <Folha aberta={meusAlimentos} aoFechar={() => setMeusAlimentos(false)} titulo="Meus alimentos">
+        {meusAlimentos && <MeusAlimentos />}
+      </Folha>
 
       <Folha aberta={!!adicionar} aoFechar={() => setAdicionar(null)} titulo="Adicionar alimento">
         {adicionar && <AdicionarAlimento data={data} refeicao={adicionar} aoFechar={() => setAdicionar(null)} />}
@@ -99,15 +125,6 @@ export function Dieta() {
 }
 
 /** "2 colher de sopa" → "2 colheres de sopa" (só a primeira palavra). */
-export function plural(medida: string, qtd: number) {
-  if (qtd <= 1) return medida;
-  return medida.replace(/^(\S+)/, (w) => (/[rz]$/.test(w) ? `${w}es` : /ão$/.test(w) ? w.replace(/ão$/, 'ões') : /l$/.test(w) ? w.replace(/l$/, 'is') : /[aeiouáéíóúê]$/.test(w) ? `${w}s` : w));
-}
-
-function textoQtd(i: Pick<RegistroAlimento, 'medida' | 'qtd' | 'gramas'>) {
-  return i.medida === 'gramas' ? `${fmt(i.gramas)} g` : `${fmt(i.qtd, 1)} ${plural(i.medida, i.qtd)} · ${fmt(i.gramas)} g`;
-}
-
 // ---------------------------------------------------------------- resumo do dia
 function Resumo({ total, metas, aoEditar }: { total: ReturnType<typeof somar>; metas: MetasDieta; aoEditar: () => void }) {
   const falta = metas.kcal - total.kcal;
@@ -161,171 +178,6 @@ function Agua({ ml, meta, aoSomar }: { ml: number; meta?: number; aoSomar: (ml: 
         <button className="chip-sel" onClick={() => aoSomar(500)}>+ garrafa 500 ml</button>
       </div>
     </Card>
-  );
-}
-
-// ---------------------------------------------------------------- quantidade
-function Quantidade({ alimento, medidas: lista, medida, qtd, onChange }: {
-  alimento: Pick<Alimento, 'nome' | 'kcal' | 'p' | 'c' | 'g' | 'fibra'>; medidas: Medida[]; medida: Medida; qtd: number; onChange: (m: Medida, q: number) => void;
-}) {
-  const medidas = [...lista];
-  if (!medidas.some((m) => m.nome === medida.nome)) medidas.push(medida);
-  const gramas = Math.round(medida.g * qtd);
-  const t = porcao(alimento, gramas);
-  return (
-    <div className="quantidade">
-      {medidas.length > 1 && (
-        <div className="chips-sel" role="radiogroup" aria-label="Medida">
-          {medidas.map((m) => (
-            <button key={m.nome} role="radio" aria-checked={m.nome === medida.nome} className={`chip-sel ${m.nome === medida.nome ? 'on on--musc' : ''}`}
-              onClick={() => onChange(m, m.g === 1 ? Math.round(medida.g * qtd) || 100 : 1)}>
-              {m.g === 1 ? 'gramas' : `${m.nome} (${m.g} g)`}
-            </button>
-          ))}
-        </div>
-      )}
-      <Stepper rotulo={medida.g === 1 ? 'Quantidade' : `Quantas (${medida.nome})`} sufixo={medida.g === 1 ? 'g' : undefined}
-        passo={medida.g === 1 ? 10 : 0.5} min={0} valor={qtd} onChange={(v) => onChange(medida, v)} />
-      <div className="porcao">
-        <div><strong>{fmt(t.kcal)}</strong><span>kcal</span></div>
-        <div><strong>{fmt(t.p, 1)}</strong><span>prot. g</span></div>
-        <div><strong>{fmt(t.c, 1)}</strong><span>carb. g</span></div>
-        <div><strong>{fmt(t.g, 1)}</strong><span>gord. g</span></div>
-      </div>
-      {medida.g !== 1 && <p className="sutil centro">≈ {fmt(gramas)} g</p>}
-    </div>
-  );
-}
-
-function EscolherRefeicao({ valor, onChange }: { valor: RefeicaoId; onChange: (r: RefeicaoId) => void }) {
-  return (
-    <div className="campo">
-      <span>Refeição</span>
-      <div className="chips-sel">
-        {REFEICOES.map((r) => (
-          <button key={r.id} className={`chip-sel ${valor === r.id ? 'on on--musc' : ''}`} aria-pressed={valor === r.id} onClick={() => onChange(r.id)}>{r.emoji} {r.nome}</button>
-        ))}
-      </div>
-    </div>
-  );
-}
-
-// ---------------------------------------------------------------- adicionar
-interface NoPrato { a: Alimento; medida: Medida; qtd: number }
-const gramasDe = (x: Pick<NoPrato, 'medida' | 'qtd'>) => Math.round(x.medida.g * x.qtd);
-const praRefeicao = (id: RefeicaoId) => `${id === 'ceia' ? 'na' : 'no'} ${REFEICOES.find((r) => r.id === id)!.nome.toLowerCase()}`;
-
-/**
- * Busca → quantidade. Dá para montar o "prato" com vários alimentos (ex.: pão + ovo)
- * e salvar tudo de uma vez.
- */
-function AdicionarAlimento({ data, refeicao: inicial, aoFechar }: { data: string; refeicao: RefeicaoId; aoFechar: () => void }) {
-  const [base, setBase] = useState<Alimento[] | null>(null);
-  const [erroBase, setErroBase] = useState(false);
-  const [termo, setTermo] = useState('');
-  const [rec, setRec] = useState<RegistroAlimento[]>([]);
-  const [escolhido, setEscolhido] = useState<NoPrato | null>(null);
-  const [prato, setPrato] = useState<NoPrato[]>([]);
-  const [refeicao, setRefeicao] = useState<RefeicaoId>(inicial);
-  const [salvando, setSalvando] = useState(false);
-
-  useEffect(() => { void carregarBase().then(setBase).catch(() => setErroBase(true)); void recentes().then(setRec); }, []);
-  const resultados = useMemo(() => (base && termo.trim().length >= 2 ? buscar(base, termo) : []), [base, termo]);
-
-  function escolher(a: Alimento, ultimo?: RegistroAlimento) {
-    const ms = medidasPara(a);
-    if (ultimo) {
-      const m = ms.find((x) => x.nome === ultimo.medida) ?? { nome: 'gramas', g: 1 };
-      return setEscolhido({ a, medida: m, qtd: m.g === 1 ? ultimo.gramas : ultimo.qtd });
-    }
-    const caseira = ms[1];
-    setEscolhido(caseira ? { a, medida: caseira, qtd: 1 } : { a, medida: ms[0], qtd: 100 });
-  }
-
-  async function salvar(itens: NoPrato[]) {
-    setSalvando(true);
-    for (const x of itens) await lancar(data, refeicao, x.a, gramasDe(x), { nome: x.medida.nome, qtd: x.qtd });
-    aoFechar();
-  }
-
-  function incluir() {
-    if (!escolhido) return;
-    setPrato([...prato, escolhido]); setEscolhido(null); setTermo('');
-  }
-
-  const totalPrato = somar(prato.map((x) => porcao(x.a, gramasDe(x))));
-
-  if (escolhido) {
-    const gramas = gramasDe(escolhido);
-    const n = prato.length + 1;
-    return (
-      <div className="detalhe">
-        <button className="link escolher__voltar" onClick={() => setEscolhido(null)}>‹ Voltar à busca</button>
-        <h2 className="detalhe__titulo">{escolhido.a.nome}</h2>
-        <p className="sutil">{escolhido.a.grupo} · {fmt(escolhido.a.kcal)} kcal em 100 g · {escolhido.a.fonte}</p>
-        <Quantidade alimento={escolhido.a} medidas={medidasPara(escolhido.a)} medida={escolhido.medida} qtd={escolhido.qtd} onChange={(medida, qtd) => setEscolhido({ ...escolhido, medida, qtd })} />
-        <EscolherRefeicao valor={refeicao} onChange={setRefeicao} />
-        <div className="acoes-fixas">
-          {!!prato.length && <p className="sutil centro">Já no prato: {prato.map((x) => x.a.nome.split(',')[0]).join(' · ')}</p>}
-          <Botao grande disabled={gramas <= 0 || salvando} onClick={() => void salvar([...prato, escolhido])}>
-            {n > 1 ? `Salvar ${n} alimentos ${praRefeicao(refeicao)}` : `Salvar ${praRefeicao(refeicao)}`}
-          </Botao>
-          <Botao variante="secundario" disabled={gramas <= 0} onClick={incluir}>＋ Incluir e adicionar outro alimento</Botao>
-        </div>
-      </div>
-    );
-  }
-
-  const deRecente = (r: RegistroAlimento): Alimento => {
-    const b = base?.find((x) => x.id === r.alimentoId);
-    return b ?? { id: r.alimentoId, nome: r.nome, grupo: 'Recente', kcal: r.por100.kcal, p: r.por100.p, c: r.por100.c, g: r.por100.g, fibra: r.por100.fibra, sodio: 0, fonte: 'TACO' };
-  };
-
-  return (
-    <div className="detalhe busca-alimento">
-      <h2 className="detalhe__titulo">{prato.length ? 'Adicionar mais' : 'Adicionar alimento'}</h2>
-      {!!prato.length && (
-        <div className="prato">
-          <div className="prato__topo"><strong>No prato · {fmt(totalPrato.kcal)} kcal</strong><span className="sutil">{praRefeicao(refeicao)}</span></div>
-          <ul>
-            {prato.map((x, i) => (
-              <li key={i}>
-                <span>{x.a.nome} <small>· {textoQtd({ medida: x.medida.g === 1 ? 'gramas' : x.medida.nome, qtd: x.qtd, gramas: gramasDe(x) })}</small></span>
-                <button className="mini-btn mini-btn--perigo" aria-label={`Tirar ${x.a.nome}`} onClick={() => setPrato(prato.filter((_, j) => j !== i))}>✕</button>
-              </li>
-            ))}
-          </ul>
-          <Botao disabled={salvando} onClick={() => void salvar(prato)}>Salvar {prato.length} {prato.length === 1 ? 'alimento' : 'alimentos'} {praRefeicao(refeicao)}</Botao>
-        </div>
-      )}
-      <input className="busca" type="search" autoFocus placeholder="Buscar: arroz, ovo frito, tapioca…" value={termo} onChange={(e) => setTermo(e.target.value)} aria-label="Buscar alimento" />
-      {!base && !erroBase && <p className="sutil">Carregando a tabela de alimentos…</p>}
-      {erroBase && <p className="aviso-campo">Não consegui carregar a tabela de alimentos. Abra o app com internet uma vez para ela ficar salva.</p>}
-      {termo.trim().length < 2 ? (
-        rec.length ? (
-          <>
-            <h3 className="detalhe__secao">Recentes</h3>
-            <ul className="lista-alimentos">
-              {rec.map((r) => (
-                <li key={r.id}><button onClick={() => escolher(deRecente(r), r)}>
-                  <span className="lista-alimentos__nome">{r.nome}</span>
-                  <span className="lista-alimentos__info">{textoQtd(r)} · {fmt(r.kcal)} kcal</span>
-                </button></li>
-              ))}
-            </ul>
-          </>
-        ) : <p className="sutil">Digite pelo menos 2 letras. A busca ignora acentos e a ordem das palavras (ex.: "ovo frito", "frango grelhado").</p>
-      ) : resultados.length ? (
-        <ul className="lista-alimentos">
-          {resultados.map((a) => (
-            <li key={a.id}><button onClick={() => escolher(a)}>
-              <span className="lista-alimentos__nome">{a.nome} <span className={`fonte fonte--${a.fonte.toLowerCase()}`}>{a.fonte}</span></span>
-              <span className="lista-alimentos__info">{fmt(a.kcal)} kcal · P {fmt(a.p, 1)} · C {fmt(a.c, 1)} · G {fmt(a.g, 1)} <small>(100 g)</small></span>
-            </button></li>
-          ))}
-        </ul>
-      ) : base ? <p className="sutil">Nada encontrado para "{termo}". Tente outra palavra (ex.: "pão" em vez de "pãozinho").</p> : null}
-    </div>
   );
 }
 
