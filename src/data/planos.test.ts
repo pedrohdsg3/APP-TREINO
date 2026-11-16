@@ -74,9 +74,20 @@ describe('cardio leve', () => {
       expect(diaPlanejado(5, 1).cardio).toBeUndefined();
     }
   });
-  it('Pedro continua com 7 treinos por semana', () => {
-    expect(treinosPorSemana()).toBe(7);
-    expect(diasComTreino().every(Boolean)).toBe(true);
+  it('Pedro: 3 musculações + 3 corridas (abdômen 2×), domingo descanso ativo', () => {
+    expect(treinosPorSemana()).toBe(6);
+    expect(diasComTreino()).toEqual([true, true, true, true, true, true, false]);
+    const tipos = Array.from({ length: 7 }, (_, d) => { const p = diaPlanejado(1, d); return p.descanso ? 'descanso' : p.tipoPrincipal; });
+    expect(tipos).toEqual(['musculacao', 'corrida', 'musculacao', 'corrida', 'musculacao', 'corrida', 'descanso']);
+    expect(diaPlanejado(1, 3).musculacao?.id).toBe('abdomen');
+    expect(diaPlanejado(1, 5).corrida?.tipo).toBe('intervalada');
+  });
+  it('Pedro: séries por grupo na semana iguais ou acima do plano anterior', () => {
+    const series: Record<string, number> = {};
+    for (const d of [0, 2, 3, 4]) for (const it of diaPlanejado(1, d).musculacao!.itens) {
+      const g = EXERCICIOS[it.exercicioId].grupo; series[g] = (series[g] ?? 0) + it.series;
+    }
+    expect(series).toMatchObject({ Peito: 15, Costas: 15, Ombro: 15, 'Bíceps': 10, 'Tríceps': 11, 'Quadríceps': 12, Posterior: 8, Panturrilha: 4 });
   });
 });
 

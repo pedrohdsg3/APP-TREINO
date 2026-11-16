@@ -1,8 +1,16 @@
 import { describe, expect, it } from 'vitest';
 import { diaPlanejado } from './plano';
 import { ajustarDescanso, ajustarSerie, alternativas, concluirSerie, fazerAgora, montarTreino, proximoPendente, pularExercicio, resumir, treinoConcluido, trocarExercicio } from './treinoAtivo';
+import { usarPlano as __usarPlano } from './plano';
+import { PLANO_PEDRO, PLANO_PEDRO_ANTERIOR } from '../data/planos';
+import { beforeEach as __antes, afterEach as __depois } from 'vitest';
+// Estes testes foram escritos sobre a semana anterior do Pedro (4× musculação + 3 corridas).
+__antes(() => __usarPlano(PLANO_PEDRO_ANTERIOR));
+__depois(() => __usarPlano(PLANO_PEDRO));
 
+__usarPlano(PLANO_PEDRO_ANTERIOR);
 const plano = diaPlanejado(1, 0).musculacao!;
+__usarPlano(PLANO_PEDRO);
 const base = () => montarTreino(plano, {
   sessaoId: 's1', data: '2026-11-09', semana: 1, agora: 0,
   historico: { 'supino-reto': { ultima: { data: '2026-11-02', series: Array(4).fill({ carga: 60, reps: 8 }) }, todas: Array(4).fill({ carga: 60, reps: 8 }) } },

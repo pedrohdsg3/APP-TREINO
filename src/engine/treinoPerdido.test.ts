@@ -2,6 +2,12 @@ import { describe, expect, it } from 'vitest';
 import { aplicarAcao, diasParado, recomendar, treinosPerdidos } from './treinoPerdido';
 import { planoDaData, type ConfigPrograma } from './plano';
 import type { Sessao } from '../db';
+import { usarPlano as __usarPlano } from './plano';
+import { PLANO_PEDRO, PLANO_PEDRO_ANTERIOR } from '../data/planos';
+import { beforeEach as __antes, afterEach as __depois } from 'vitest';
+// Estes testes foram escritos sobre a semana anterior do Pedro (4× musculação + 3 corridas).
+__antes(() => __usarPlano(PLANO_PEDRO_ANTERIOR));
+__depois(() => __usarPlano(PLANO_PEDRO));
 
 // Pedro: seg peito, ter corrida base, qua costas, qui intervalado, sex ombro, sáb pernas, dom corrida leve + abdômen
 const cfg: ConfigPrograma = { inicio: '2026-11-09', repetidas: [] };

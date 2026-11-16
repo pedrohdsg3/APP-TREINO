@@ -105,6 +105,53 @@ export interface TreinoMusculacao {
 }
 
 export const TREINOS_MUSCULACAO: Record<string, TreinoMusculacao> = {
+  // ---- plano atual (desde 16/11/2026): superior A / inferior / superior B
+  'superior-a-pedro': {
+    id: 'superior-a-pedro',
+    titulo: 'Superior A · Peito, costas, ombro e braços',
+    itens: () => [
+      i('supino-reto', 4, 8),
+      i('cross-over', 3, 12),
+      i('remada-curvada', 4, 8),
+      i('pulldown', 4, 12),
+      i('desenvolvimento-halter', 4, 10),
+      i('elevacao-lateral', 4, 12),
+      i('rosca-direta', 4, 10),
+      i('triceps-corda', 4, 12),
+    ],
+  },
+  'inferior-pedro': {
+    id: 'inferior-pedro',
+    titulo: 'Inferior + Abdômen',
+    itens: () => [
+      i('agachamento', 4, 8),
+      i('leg-press', 4, 10),
+      i('extensora', 4, 12),
+      i('stiff', 4, 10),
+      i('flexora', 4, 12),
+      i('panturrilha', 4, 15),
+      i('abd-remador', 4, 15, { descanso: 45 }),
+      i('prancha', 3, 45, { descanso: 60 }),
+    ],
+  },
+  'superior-b-pedro': {
+    id: 'superior-b-pedro',
+    titulo: 'Superior B · Peito, costas, ombro e braços',
+    itens: (s) => [
+      i('supino-inclinado-halter', 4, 10),
+      // Semanas ímpares: peito superior (crucifixo inclinado). Pares: miolo (peck deck).
+      s % 2 === 1 ? i('crucifixo-inclinado', 4, 12) : i('peck-deck', 4, 12),
+      i('barra-fixa', 4, 8),
+      i('remada-unilateral', 3, 10),
+      i('elevacao-lateral', 4, 12),
+      i('crucifixo-inverso', 3, 15),
+      i('triceps-testa', 4, 10),
+      i('mergulho', 3, 0, { obs: 'até perto da falha' }),
+      i('rosca-alternada', 3, 12),
+      i('rosca-martelo', 3, 12),
+    ],
+  },
+  // ---- plano anterior (até 15/11/2026): mantido para o histórico
   'peito-triceps': {
     id: 'peito-triceps',
     titulo: 'Peito + Tríceps',
@@ -155,11 +202,12 @@ export const TREINOS_MUSCULACAO: Record<string, TreinoMusculacao> = {
       i('panturrilha', 4, 15),
     ],
   },
+  // Abdômen B (quinta, depois da corrida leve). O abdômen A fica no fim do treino de inferiores.
   abdomen: {
     id: 'abdomen',
     titulo: 'Abdômen',
     itens: () => [
-      i('abd-remador', 3, 15, { descanso: 45 }),
+      i('abd-infra', 3, 12, { descanso: 45 }),
       i('rotacao-russa', 3, 20, { obs: 'cada lado', descanso: 45 }),
       i('prancha-lateral', 3, 30, { obs: 'cada lado', descanso: 45 }),
     ],

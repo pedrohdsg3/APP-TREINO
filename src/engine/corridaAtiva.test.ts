@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { corridaPlanejada, planoDaData, proximaCorrida, type ConfigPrograma } from './plano';
 import { comecarAgora, naContagem, encerrar, estadoFase, fmtPace, informarDor, montarCorrida, pace, pausar, pularFase, resumirCorrida, retomar, tempoAtivo } from './corridaAtiva';
+import { usarPlano as __usarPlano } from './plano';
+import { PLANO_PEDRO, PLANO_PEDRO_ANTERIOR } from '../data/planos';
+import { beforeEach as __antes, afterEach as __depois } from 'vitest';
+// Estes testes foram escritos sobre a semana anterior do Pedro (4× musculação + 3 corridas).
+__antes(() => __usarPlano(PLANO_PEDRO_ANTERIOR));
+__depois(() => __usarPlano(PLANO_PEDRO));
 
 const s = (n: number) => n * 1000;
 const base = () => montarCorrida(corridaPlanejada('base', 1), { sessaoId: 'c', data: '2026-11-10', semana: 1, agora: 0, treinoId: 'base' });

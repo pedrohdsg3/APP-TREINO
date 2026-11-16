@@ -42,18 +42,30 @@ export function minutosCardio(semana: number): number {
 }
 
 // ------------------------------------------------------------ PEDRO
+/** Semana do Pedro até 15/11/2026 (4× musculação + abdômen + 3 corridas). Usada nos testes do motor. */
+export const SEMANA_PEDRO_ANTERIOR: DiaModelo[] = [
+  { musculacao: 'peito-triceps', cardio: true },
+  { corrida: 'base' },
+  { musculacao: 'costas-biceps', cardio: true },
+  { corrida: 'intervalada' },
+  { musculacao: 'ombro-bracos', cardio: true },
+  { musculacao: 'pernas', cardio: true },
+  { corrida: 'leve', musculacao: 'abdomen' },
+];
+
 export const PLANO_PEDRO: DefinicaoPlano = {
   id: 'pedro',
-  nome: 'Musculação 5× + corrida 3×',
-  descricao: 'Peito, costas, ombros/braços, pernas e abdômen, com corrida progressiva cuidando do joelho.',
+  nome: 'Musculação 3× + corrida 3×',
+  descricao: 'Superior A, inferior e superior B (superiores 2× por semana), abdômen 2×, corrida progressiva cuidando do joelho e domingo de descanso ativo.',
+  // Perna na quarta e intervalado só no sábado: o dia depois da perna é trote leve.
   semana: [
-    { musculacao: 'peito-triceps', cardio: true },
+    { musculacao: 'superior-a-pedro', cardio: true },
     { corrida: 'base' },
-    { musculacao: 'costas-biceps', cardio: true },
-    { corrida: 'intervalada' },
-    { musculacao: 'ombro-bracos', cardio: true },
-    { musculacao: 'pernas', cardio: true },
+    { musculacao: 'inferior-pedro', cardio: true },
     { corrida: 'leve', musculacao: 'abdomen' },
+    { musculacao: 'superior-b-pedro', cardio: true },
+    { corrida: 'intervalada' },
+    { descanso: true, cardio: true },
   ],
   treinos: TREINOS_MUSCULACAO,
   fase: (s) => (ehSemanaRecuperacao(s) ? 'Recuperação' : s <= 3 ? 'Base' : s <= 7 ? 'Progressão' : 'Intensificação'),
@@ -209,5 +221,8 @@ export const PLANO_FEMININO: DefinicaoPlano = {
   },
   menosUmaSerieNaRecuperacao: false,
 };
+
+/** Plano anterior do Pedro (só para testes do motor, que foram escritos sobre ele). */
+export const PLANO_PEDRO_ANTERIOR: DefinicaoPlano = { ...PLANO_PEDRO, nome: 'Musculação 5× + corrida 3× (anterior)', semana: SEMANA_PEDRO_ANTERIOR };
 
 export const PLANOS: Record<DefinicaoPlano['id'], DefinicaoPlano> = { pedro: PLANO_PEDRO, feminino: PLANO_FEMININO };

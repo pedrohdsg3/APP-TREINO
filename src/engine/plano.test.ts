@@ -1,6 +1,12 @@
 import { describe, expect, it } from 'vitest';
 import { diaPlanejado, faseDaSemana, posicao, repetirSemana, semanaDoPrograma, corridaPlanejada, prescricao, musculacaoPlanejada, planoDaData, type ConfigPrograma } from './plano';
 import { formatarData, somarDias } from '../lib/datas';
+import { usarPlano as __usarPlano } from './plano';
+import { PLANO_PEDRO, PLANO_PEDRO_ANTERIOR } from '../data/planos';
+import { beforeEach as __antes, afterEach as __depois } from 'vitest';
+// Estes testes foram escritos sobre a semana anterior do Pedro (4× musculação + 3 corridas).
+__antes(() => __usarPlano(PLANO_PEDRO_ANTERIOR));
+__depois(() => __usarPlano(PLANO_PEDRO));
 
 const cfg: ConfigPrograma = { inicio: '2026-11-09', repetidas: [] };
 

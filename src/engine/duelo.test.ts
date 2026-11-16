@@ -6,11 +6,11 @@ const yana: Participante = { id: 'yana', nome: 'Yana', emoji: '🌸', personagem
 const dias = (de: string, n: number, pular: number[] = []) => Array.from({ length: n }, (_, i) => i).filter((i) => !pular.includes(i)).map((i) => { const d = new Date(2026, 10, Number(de.slice(8)) + i, 12); return d.toISOString().slice(0, 10); });
 
 describe('duelo', () => {
-  it('presença é justa entre planos de 7 e 6 treinos por semana', () => {
-    const p = { ...pedro, feitos: dias('2026-11-16', 7, [3]) }; // 6 de 7
+  it('presença é justa entre os planos (6 treinos por semana cada, domingo descanso)', () => {
+    const p = { ...pedro, feitos: dias('2026-11-16', 6, [3]) }; // 5 de 6
     const y = { ...yana, feitos: dias('2026-11-16', 6) };        // 6 de 6 (domingo é descanso)
     const sp = estatisticas(p, '2026-11-16', '2026-11-22'), sy = estatisticas(y, '2026-11-16', '2026-11-22');
-    expect(sp).toMatchObject({ planejados: 7, feitos: 6 });
+    expect(sp).toMatchObject({ planejados: 6, feitos: 5 });
     expect(sy).toMatchObject({ planejados: 6, feitos: 6, presenca: 1 });
     expect(lider(sp, sy)).toBe('b');
   });
