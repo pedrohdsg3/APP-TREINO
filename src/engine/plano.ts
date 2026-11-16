@@ -290,3 +290,24 @@ export function prescricao(it: ItemTreino): string {
   const extra = ex.medida !== 'falha' && it.obs ? ` ${it.obs}` : '';
   return `${it.series} × ${alvo}${extra}`;
 }
+
+/**
+ * Numeração dos exercícios contando cada biset como 1: ex. [1, 2a, 2b, 3…].
+ * Retorna o rótulo de cada item e o total de "exercícios" (blocos).
+ */
+export function numerarBlocos(itens: Pick<ItemTreino, 'biset'>[]): { rotulos: string[]; blocos: number[]; total: number } {
+  const rotulos: string[] = []; const blocos: number[] = [];
+  let n = 0;
+  itens.forEach((it, k) => {
+    const anterior = k > 0 ? itens[k - 1] : undefined;
+    const continua = !!it.biset && anterior?.biset === it.biset;
+    if (!continua) n++;
+    blocos.push(n);
+    if (!it.biset) rotulos.push(String(n));
+    else {
+      const ordem = itens.slice(0, k + 1).filter((x, j) => x.biset === it.biset && blocos[j] === n).length;
+      rotulos.push(`${n}${'abc'[ordem - 1] ?? ''}`);
+    }
+  });
+  return { rotulos, blocos, total: n };
+}

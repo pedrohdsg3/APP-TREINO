@@ -1,6 +1,6 @@
 import { afterEach, describe, expect, it } from 'vitest';
 import { PLANO_FEMININO, PLANO_PEDRO, minutosCardio } from './planos';
-import { diaPlanejado, planoDaData, treinosPorSemana, usarPlano, diasComTreino, orientacaoFase } from '../engine/plano';
+import { numerarBlocos, diaPlanejado, planoDaData, treinosPorSemana, usarPlano, diasComTreino, orientacaoFase } from '../engine/plano';
 import { EXERCICIOS } from './musculacao';
 import { sequencia } from '../engine/estatisticas';
 import { mapaConsistencia } from '../engine/evolucao';
@@ -81,6 +81,10 @@ describe('cardio leve', () => {
     expect(tipos).toEqual(['musculacao', 'corrida', 'musculacao', 'corrida', 'musculacao', 'corrida', 'descanso']);
     expect(diaPlanejado(1, 3).musculacao?.id).toBe('abdomen');
     expect(diaPlanejado(1, 5).corrida?.tipo).toBe('intervalada');
+  });
+  it('Pedro: bisets contam como 1 exercício (A: 6 · Inferior: 7 · B: 7)', () => {
+    expect([0, 2, 4].map((d) => numerarBlocos(diaPlanejado(1, d).musculacao!.itens).total)).toEqual([6, 7, 7]);
+    expect(numerarBlocos(diaPlanejado(1, 4).musculacao!.itens).rotulos.slice(0, 4)).toEqual(['1', '2a', '2b', '3']);
   });
   it('Pedro: séries por grupo na semana iguais ou acima do plano anterior', () => {
     const series: Record<string, number> = {};

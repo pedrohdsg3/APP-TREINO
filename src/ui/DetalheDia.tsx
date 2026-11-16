@@ -4,7 +4,7 @@ import { useLiveQuery } from 'dexie-react-hooks';
 import { db } from '../db';
 import { EXERCICIOS } from '../data/musculacao';
 import { REGRAS_JOELHO } from '../data/corrida';
-import { orientacaoCorrida, orientacaoFase, formatarDuracao, prescricao, type CorridaPlanejada, type DiaPlanejado, type MusculacaoPlanejada } from '../engine/plano';
+import { orientacaoCorrida, orientacaoFase, formatarDuracao, prescricao, type CorridaPlanejada, type DiaPlanejado, type MusculacaoPlanejada, numerarBlocos } from '../engine/plano';
 import { dataPorExtenso, formatarData } from '../lib/datas';
 import { Chip } from './Componentes';
 import { IcHalter, IcRelogio, IcTenis } from './Icones';
@@ -66,12 +66,13 @@ function BlocoMusculacao({ m, pct }: { m: MusculacaoPlanejada; pct: number }) {
         <span className="detalhe-meta"><IcRelogio tamanho={15} /> ~{m.minutos} min</span>
       </div>
       {pct < 100 && <p className="sutil">Carga ~{pct}% da habitual nesta semana.</p>}
+      <p className="sutil">{numerarBlocos(m.itens).total} exercícios{m.itens.some((x) => x.biset) ? ' (cada biset conta como 1)' : ''}</p>
       <ol className="lista-exercicios">
         {m.itens.map((it, i) => {
           const ex = EXERCICIOS[it.exercicioId];
           return (
             <li key={it.exercicioId + i}>
-              <span className="lista-exercicios__num">{i + 1}</span>
+              <span className="lista-exercicios__num">{numerarBlocos(m.itens).rotulos[i]}</span>
               <button className="lista-exercicios__info lista-exercicios__info--botao" onClick={() => setTutorial(it.exercicioId)} aria-label={`Como fazer: ${ex.nome}`}>
                 <strong>{ex.nome}</strong>
                 <span>{ex.grupo} · descanso {it.descanso} s · <u>como fazer</u></span>

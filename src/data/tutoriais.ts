@@ -121,6 +121,17 @@ export const TUTORIAIS: Record<string, Tutorial> = {
     erros: ['Balançar o corpo para subir.', 'Fazer meia repetição sem estender os braços.'],
     cuidado: 'Ainda não sai? Use o graviton/barra assistida ou faça pulldown.',
   },
+  'puxada-triangulo': {
+    musculos: 'Dorsais (costas), meio das costas e bíceps',
+    passos: [
+      'Prenda o triângulo (puxador de pegada neutra) no pulley alto e ajuste o apoio das coxas.',
+      'Segure com as palmas viradas uma para a outra, braços estendidos, peito aberto.',
+      'Incline o tronco levemente para trás e puxe o triângulo até o alto do peito, levando os cotovelos para baixo e juntando as escápulas.',
+      'Volte devagar até estender os braços, sem soltar os ombros para cima.',
+    ],
+    erros: ['Jogar o tronco para trás para ajudar a puxar.', 'Puxar só com os braços, sem descer os ombros e juntar as escápulas.'],
+    cuidado: 'Boa preparação para a barra fixa: quando conseguir 4×10 com boa carga, dá para testar a barra (ou o graviton).',
+  },
   'remada-curvada': {
     musculos: 'Costas (dorsais e meio das costas), bíceps e posterior de ombro',
     passos: [

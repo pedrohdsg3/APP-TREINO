@@ -44,9 +44,10 @@ export const EXERCICIOS: Record<string, Exercicio> = Object.fromEntries(([
   { id: 'triceps-testa', nome: 'Tríceps testa com barra', grupo: 'Tríceps', tipo: 'isolador', medida: 'reps', regiao: 'superior', dica: 'Cotovelos apontando para o teto, sem abrir; desça até a testa.' },
   { id: 'triceps-corda', nome: 'Tríceps corda no cabo', grupo: 'Tríceps', tipo: 'isolador', medida: 'reps', regiao: 'superior', dica: 'Cotovelos colados ao corpo; abra a corda no final do movimento.' },
   // Costas / bíceps
-  { id: 'barra-fixa', nome: 'Barra fixa (pegada pronada)', grupo: 'Costas', tipo: 'composto', medida: 'reps', regiao: 'superior', dica: 'Peito em direção à barra; use elástico ou graviton se precisar. Carga = peso extra (0 = só o corpo).', alternativas: ['pulldown'] },
+  { id: 'barra-fixa', nome: 'Barra fixa (pegada pronada)', grupo: 'Costas', tipo: 'composto', medida: 'reps', regiao: 'superior', dica: 'Peito em direção à barra; use elástico ou graviton se precisar. Carga = peso extra (0 = só o corpo).', alternativas: ['pulldown', 'puxada-triangulo'] },
   { id: 'remada-curvada', nome: 'Remada curvada com barra', grupo: 'Costas', tipo: 'composto', medida: 'reps', regiao: 'superior', dica: 'Coluna neutra, tronco ~45°; puxe a barra em direção ao umbigo.' },
   { id: 'remada-unilateral', nome: 'Remada unilateral com haltere', grupo: 'Costas', tipo: 'composto', medida: 'reps', regiao: 'superior', dica: 'Apoio firme no banco; puxe o cotovelo para trás, perto do quadril.', },
+  { id: 'puxada-triangulo', nome: 'Puxada com triângulo (pegada neutra)', grupo: 'Costas', tipo: 'composto', medida: 'reps', regiao: 'superior', dica: 'Tronco levemente inclinado para trás; puxe o triângulo até o alto do peito levando os cotovelos para baixo.', alternativas: ['pulldown', 'remada-baixa'] },
   { id: 'pulldown', nome: 'Pulldown (puxada frontal)', grupo: 'Costas', tipo: 'composto', medida: 'reps', regiao: 'superior', dica: 'Puxe até a parte alta do peito, sem jogar o tronco para trás.' },
   { id: 'rosca-direta', nome: 'Rosca direta com barra', grupo: 'Bíceps', tipo: 'isolador', medida: 'reps', regiao: 'superior', dica: 'Cotovelos parados ao lado do corpo; sem balançar o tronco.' },
   { id: 'rosca-alternada', nome: 'Rosca alternada com haltere', grupo: 'Bíceps', tipo: 'isolador', medida: 'reps', regiao: 'superior', dica: 'Gire o punho (supinação) durante a subida.' },
@@ -116,8 +117,9 @@ export const TREINOS_MUSCULACAO: Record<string, TreinoMusculacao> = {
       i('cross-over', 3, 12),
       i('remada-curvada', 4, 8),
       i('pulldown', 4, 12),
-      i('desenvolvimento-halter', 4, 10),
-      i('elevacao-lateral', 4, 12),
+      // biset: desenvolvimento → elevação lateral
+      i('desenvolvimento-halter', 4, 10, { biset: 'ombro' }),
+      i('elevacao-lateral', 4, 12, { biset: 'ombro' }),
       // biset: rosca → tríceps sem descanso; descansa depois do par
       i('rosca-direta', 4, 10, { biset: 'bracos' }),
       i('triceps-corda', 5, 12, { biset: 'bracos' }),
@@ -145,12 +147,14 @@ export const TREINOS_MUSCULACAO: Record<string, TreinoMusculacao> = {
       // biset: crucifixo (peito) → crucifixo inverso (posterior de ombro). Semanas ímpares: crucifixo inclinado; pares: peck deck.
       s % 2 === 1 ? i('crucifixo-inclinado', 4, 12, { biset: 'crucifixos' }) : i('peck-deck', 4, 12, { biset: 'crucifixos' }),
       i('crucifixo-inverso', 4, 15, { biset: 'crucifixos' }),
-      i('barra-fixa', 4, 8),
+      // no lugar da barra fixa (por enquanto): puxada vertical com pegada neutra
+      i('puxada-triangulo', 4, 10),
       i('remada-unilateral', 3, 10),
       i('elevacao-lateral', 4, 12),
       i('triceps-testa', 5, 10),
-      i('rosca-alternada', 3, 12),
-      i('rosca-martelo', 3, 12),
+      // biset: rosca alternada → rosca martelo
+      i('rosca-alternada', 3, 12, { biset: 'roscas' }),
+      i('rosca-martelo', 3, 12, { biset: 'roscas' }),
     ],
   },
   // ---- plano anterior (até 15/11/2026): mantido para o histórico

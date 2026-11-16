@@ -1,7 +1,7 @@
 // Modo Musculação: aquecimento → exercício a exercício (séries, carga, descanso) → resumo.
 import { useCallback, useEffect, useRef, useState } from 'react';
 import { EXERCICIOS } from '../data/musculacao';
-import { faseDaSemana, prescricao } from '../engine/plano';
+import { faseDaSemana, prescricao, numerarBlocos } from '../engine/plano';
 import { ESFORCO_FASE, orientacaoSerie } from '../engine/metodologia';
 import { fmtKg, passoCarga } from '../engine/progressao';
 import {
@@ -218,7 +218,7 @@ function Exercicios({ t, atualizar, agora, aoSair, aoPR }: PropsEtapa & { agora:
         <div className="ex-cab entra-ex">
           <div className="ex-cab__linha">
             <Chip cor="musc"><IcHalter tamanho={15} /> {ex.grupo}</Chip>
-            <span className="rotulo-sup">Exercício {t.atual + 1} de {t.exercicios.length}</span>
+            <span className="rotulo-sup">{(() => { const nb = numerarBlocos(t.exercicios.map((x) => x.item)); return `Exercício ${nb.blocos[t.atual]} de ${nb.total}${e.item.biset ? ' · biset' : ''}`; })()}</span>
           </div>
           <h1 className="guiado__h1">{ex.nome}</h1>
           <p className="ex-cab__presc">{prescricao(e.item)} · descanso {descansoDe(e.item.exercicioId, e.item.descanso)} s
@@ -330,7 +330,7 @@ function Exercicios({ t, atualizar, agora, aoSair, aoPR }: PropsEtapa & { agora:
           <ol className="lista-exercicios">
             {t.exercicios.map((x, i) => (
               <li key={i} className={i === t.atual ? 'atual' : ''}>
-                <span className="lista-exercicios__num">{exConcluido(x) ? '✓' : i + 1}</span>
+                <span className="lista-exercicios__num">{exConcluido(x) ? '✓' : numerarBlocos(t.exercicios.map((y) => y.item)).rotulos[i]}</span>
                 <div className="lista-exercicios__info">
                   <strong>{EXERCICIOS[x.item.exercicioId].nome}</strong>
                   <span>{seriesFeitas(x)}/{x.series.length} séries</span>
