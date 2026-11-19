@@ -47,7 +47,7 @@ export function Hoje({ aoIniciar, aoCorridaLivre, aoTrocarPerfil, aoAbrirDieta }
   const nTreinos = treinosPorSemana();
   const perfil = perfilAtual();
   const ultima = ultimaSessao(sessoes, hoje);
-  const doDia = sessoes.filter((s) => s.data === hoje && s.status !== 'pulado');
+  const doDia = sessoes.filter((s) => s.data === hoje && s.status !== 'pulado' && s.status !== 'incompleto');
   const tipoPrincipal = plano?.corrida?.tipo === 'cardio' ? 'cardio' : (plano?.tipoPrincipal ?? 'musculacao');
   // corrida trocada por outra atividade (basquete, vôlei…) também cumpre o dia
   const troca = tipoPrincipal === 'corrida' ? doDia.find((s) => s.tipo === 'atividade' && s.atividade?.substituiuCorrida) : undefined;

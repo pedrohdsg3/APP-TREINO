@@ -15,7 +15,7 @@ describe('salvar treino', () => {
     await salvarTreino({ ...t, etapa: 'resumo', fim: 3_600_000 }, { esforco: 8 }, 3_600_000);
     // `db` é um binding vivo: após reabrir, aponta para a conexão nova
     const { db: atual } = await import('../db');
-    expect(await atual.sessoes.get('sessao-teste')).toMatchObject({ tipo: 'musculacao', esforco: 8, status: 'parcial' });
+    expect(await atual.sessoes.get('sessao-teste')).toMatchObject({ tipo: 'musculacao', esforco: 8, status: 'incompleto' }); // 1 série de ~30: menos de 50%
     expect(await atual.series.where('sessaoId').equals('sessao-teste').count()).toBe(t.exercicios.reduce((n, e) => n + e.series.length, 0));
   });
   it('números inválidos viram 0 em vez de quebrar a gravação', async () => {

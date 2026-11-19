@@ -178,7 +178,7 @@ export function conquistas(o: {
 
 /** Maior sequência de dias seguidos com treino. */
 export function sequenciaMaxima(sessoes: Sessao[]): number {
-  const dias = [...new Set(sessoes.filter((s) => s.status !== 'pulado' && s.tipo !== 'cardio').map((s) => s.data))].sort();
+  const dias = [...new Set(sessoes.filter((s) => (s.status === 'feito' || s.status === 'parcial') && s.tipo !== 'cardio').map((s) => s.data))].sort();
   let max = 0, atual = 0;
   for (let i = 0; i < dias.length; i++) {
     atual = i > 0 && diasEntre(dias[i - 1], dias[i]) === 1 ? atual + 1 : 1;

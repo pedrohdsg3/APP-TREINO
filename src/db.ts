@@ -7,7 +7,8 @@ export interface Sessao {
   data: string; // aaaa-mm-dd
   tipo: 'musculacao' | 'corrida' | 'cardio' | 'atividade';
   diaPlanejado?: string;
-  status: 'feito' | 'pulado' | 'parcial';
+  /** incompleto: menos de 50% das séries — fica no histórico, mas não conta na meta, sequência nem Duelo */
+  status: 'feito' | 'pulado' | 'parcial' | 'incompleto';
   duracaoSeg?: number;
   esforco?: number;
   notas?: string;

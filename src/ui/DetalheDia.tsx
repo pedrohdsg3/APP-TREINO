@@ -89,7 +89,7 @@ function BlocoMusculacao({ m, pct }: { m: MusculacaoPlanejada; pct: number }) {
   );
 }
 
-const STATUS = { feito: 'Concluído ✅', parcial: 'Parcial', pulado: 'Pulado' } as const;
+const STATUS = { feito: 'Concluído ✅', parcial: 'Parcial', pulado: 'Pulado', incompleto: 'Incompleto (não conta)' } as const;
 
 export function DetalheDia({ data, plano }: { data: string; plano: DiaPlanejado }) {
   const sessoes = useLiveQuery(() => db.sessoes.where('data').equals(data).toArray(), [data]) ?? [];

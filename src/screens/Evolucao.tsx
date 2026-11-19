@@ -92,7 +92,7 @@ function AbaMetas({ d, inicio, semanas, metas, irPara, cfg }: {
   const pos = posicao(cfg, hoje);
   const iniSemana = pos.estado === 'durante' ? dataDoDia(cfg, pos.semanaCal, 0) : inicio;
   const naSemana = (data: string) => data >= iniSemana && data <= somarDias(iniSemana, 6);
-  const feitosSemana = new Set(d.sessoes.filter((s) => s.status !== 'pulado' && s.tipo !== 'cardio' && naSemana(s.data)).map((s) => s.data)).size;
+  const feitosSemana = new Set(d.sessoes.filter((s) => (s.status === 'feito' || s.status === 'parcial') && s.tipo !== 'cardio' && naSemana(s.data)).map((s) => s.data)).size;
   const nTreinos = treinosPorSemana();
   const cardioSemana = d.cardios.filter((c) => naSemana(c.data)).reduce((x, c) => x + c.duracaoSeg, 0);
   const cardioPlano = Array.from({ length: 7 }, (_, i) => { const p = planoDaData(cfg, somarDias(iniSemana, i)); return (p?.cardio ?? (p?.corrida?.tipo === 'cardio' ? p.corrida : undefined))?.totalSeg ?? 0; }).reduce((a, b) => a + b, 0);

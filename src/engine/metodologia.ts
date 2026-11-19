@@ -21,8 +21,8 @@ export function orientacaoSerie(e: ExAtivo, etapa: 'aquecimento' | number, fase:
   const a = e.aquecimento;
   if (etapa === 'aquecimento' && a) {
     return a.primeiro
-      ? { emoji: '🔥', titulo: 'Aquecimento · bem leve', texto: `Carga bem leve (~${a.pct}% da de trabalho) e ${a.repsMin}–${a.repsMax} repetições. Prepare as articulações e a cabeça para o treino: movimento controlado, sem pressa.` }
-      : { emoji: '🔥', titulo: 'Aquecimento', texto: `Carga leve (~${a.pct}% da de trabalho) e ${a.repsMin}–${a.repsMax} repetições. Ensaie o movimento antes das séries de trabalho.` };
+      ? { emoji: '🔥', titulo: 'Série 1 · leve', texto: `Primeira das séries: carga moderada (~${a.pct}% da de trabalho) e ~${a.repsMin} repetições (até ${a.repsMax}). Pegue o ritmo com o movimento controlado.` }
+      : { emoji: '🔥', titulo: 'Série 1 · leve', texto: `Primeira das séries: carga moderada (~${a.pct}% da de trabalho) e ~${a.repsMin} repetições (até ${a.repsMax}). Ensaie o movimento antes das séries de trabalho.` };
   }
   const i = typeof etapa === 'number' ? etapa : 0;
   const ultima = i === e.series.length - 1;

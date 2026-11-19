@@ -78,7 +78,7 @@ function Topo({ t, agora, aoMenu, aoLista }: { t: TreinoAtivo; agora: number; ao
 
 function MenuSair({ aberto, fechar, t, atualizar, aoSair }: PropsEtapa & { aberto: boolean; fechar: () => void }) {
   const [confirmar, setConfirmar] = useState(false);
-  const algumaFeita = t.exercicios.some((e) => seriesFeitas(e) > 0);
+  const algumaFeita = t.exercicios.some((e) => seriesFeitas(e) > 0 || !!e.aquecimento?.feita);
   return (
     <Folha aberta={aberto} aoFechar={() => { setConfirmar(false); fechar(); }} titulo="Encerrar treino">
       <div className="detalhe">
@@ -91,8 +91,8 @@ function MenuSair({ aberto, fechar, t, atualizar, aoSair }: PropsEtapa & { abert
           </>
         ) : !confirmar ? (
           <>
-            <p className="detalhe__orientacao">O treino fica salvo se você fechar o app; dá para continuar depois.</p>
-            {algumaFeita && <Botao grande onClick={() => { fechar(); atualizar((x) => ({ ...x, etapa: 'resumo', fim: Date.now(), descanso: undefined })); }}>Finalizar e ver resumo</Botao>}
+            <p className="detalhe__orientacao">{(() => { const r = resumir(t, Date.now()); const pct = Math.round((r.seriesFeitas / Math.max(1, r.seriesTotal)) * 100); return `Você fez ${r.seriesFeitas} de ${r.seriesTotal} séries (${pct}%). ${pct >= 50 ? 'Finalizando agora, o treino conta normalmente.' : 'Com menos de 50%, ele fica salvo como incompleto e não conta na meta, na sequência nem no Duelo.'}`; })()}</p>
+            {algumaFeita && <Botao grande onClick={() => { fechar(); atualizar((x) => ({ ...x, etapa: 'resumo', fim: Date.now(), descanso: undefined })); }}>🏁 Finalizar treino</Botao>}
             <Botao variante="secundario" onClick={fechar}>Continuar treinando</Botao>
             <Botao variante="fantasma" onClick={() => setConfirmar(true)}>Descartar este treino</Botao>
           </>
@@ -123,7 +123,7 @@ function Aquecimento({ t, atualizar, agora, aoSair }: PropsEtapa & { agora: numb
         <div className="metodo">
           <strong>Como funciona cada exercício</strong>
           <ol>
-            <li><b>🔥 Série de aquecimento:</b> carga leve e mais repetições (1º exercício: ~40% × 15–20; demais: ~50% × 12–15).</li>
+            <li><b>🔥 1ª série leve:</b> é a primeira das séries do exercício (não uma a mais): carga moderada e ~15 repetições (até 20) para pegar o ritmo.</li>
             <li><b>💪 Séries de trabalho:</b> carga de trabalho na faixa de repetições do dia, deixando algumas na reserva.</li>
             <li><b>🏁 Última série:</b> busque o topo da faixa com boa técnica.</li>
           </ol>
@@ -257,7 +257,7 @@ function Exercicios({ t, atualizar, agora, aoSair, aoPR }: PropsEtapa & { agora:
         {etapa !== null && valores && orient ? (
           <div className={`serie-atual ${etapa === 'aquecimento' ? 'serie-atual--aq' : ''}`} key={`${t.atual}-${etapa}`}>
             <p className="serie-atual__titulo">
-              {etapa === 'aquecimento' ? '🔥 Aquecimento' : <>Série <strong>{etapa + 1}</strong> de {e.series.length}</>}
+              {etapa === 'aquecimento' ? <>🔥 Série <strong>1</strong> de {e.series.length + 1} · leve</> : <>Série <strong>{etapa + 1 + (e.aquecimento ? 1 : 0)}</strong> de {e.series.length + (e.aquecimento ? 1 : 0)}</>}
             </p>
             <div className="orientacao">
               <strong>{orient.emoji} {orient.titulo}</strong>
@@ -317,6 +317,9 @@ function Exercicios({ t, atualizar, agora, aoSair, aoPR }: PropsEtapa & { agora:
             {proximoPendente(t) === undefined ? 'Finalizar treino' : 'Próximo exercício →'}
           </Botao>
         ) : null}
+        {t.exercicios.some((x) => seriesFeitas(x) > 0 || x.aquecimento?.feita) && proximoPendente(t) !== undefined && (
+          <button className="link finalizar-agora" onClick={() => setMenu(true)}>🏁 Finalizar treino agora</button>
+        )}
       </div>
 
       {t.descanso && <Descanso t={t} agora={agora} atualizar={atualizar} />}
@@ -415,7 +418,7 @@ function Descanso({ t, agora, atualizar }: { t: TreinoAtivo; agora: number; atua
       {prox && (
         <p className="descanso__prox">
           A seguir: <strong>{ex.nome}</strong><br />
-          {aq ? '🔥 Aquecimento' : `Série ${si + 1}`} · {ex.semCarga ? '' : `${fmtNum(prox.carga)} kg × `}{prox.reps} {ex.medida === 'segundos' ? 's' : 'reps'}
+          {aq ? '🔥 Série 1 (leve)' : `Série ${si + 1 + (e.aquecimento ? 1 : 0)}`} · {ex.semCarga ? '' : `${fmtNum(prox.carga)} kg × `}{prox.reps} {ex.medida === 'segundos' ? 's' : 'reps'}
         </p>
       )}
       <div className="descanso__btns">
@@ -504,7 +507,10 @@ function ResumoTreino({ t, atualizar, aoSair }: PropsEtapa) {
       <div className="guiado__corpo resumo entra">
         <div className="resumo__hero">
           {perfilAtual().personagem ? <Personagem quem={perfilAtual().personagem!} acao="comemora" tamanho={120} className="resumo__personagem" /> : <div className="resumo__trofeu"><IcTrofeu tamanho={44} /></div>}
-          <h1 className="guiado__h1">{completo ? 'Treino concluído!' : 'Treino parcial registrado'}</h1>
+          <h1 className="guiado__h1">{completo ? 'Treino concluído!' : r.seriesFeitas / Math.max(1, r.seriesTotal) >= 0.5 ? 'Treino parcial registrado' : 'Treino incompleto'}</h1>
+          {!completo && (r.seriesFeitas / Math.max(1, r.seriesTotal) >= 0.5
+            ? <p className="sutil">{Math.round((r.seriesFeitas / Math.max(1, r.seriesTotal)) * 100)}% das séries feitas: conta na meta da semana, na sequência e no Duelo.</p>
+            : <p className="aviso-campo">{Math.round((r.seriesFeitas / Math.max(1, r.seriesTotal)) * 100)}% das séries feitas (mínimo 50%): fica salvo no histórico como incompleto, mas não conta na meta, na sequência nem no Duelo.</p>)}
           <p className="sutil">{t.titulo} · {formatarData(t.data)}</p>
         </div>
 

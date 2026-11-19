@@ -35,6 +35,6 @@ export function sequencia(sessoes: Sessao[], hoje: string, ehDescanso: (data: st
 
 export function ultimaSessao(sessoes: Sessao[], hoje: string): Sessao | undefined {
   return sessoes
-    .filter((s) => s.status !== 'pulado' && s.tipo !== 'cardio' && s.data <= hoje)
+    .filter((s) => (s.status === 'feito' || s.status === 'parcial') && s.tipo !== 'cardio' && s.data <= hoje)
     .sort((a, b) => (a.data === b.data ? (b.duracaoSeg ?? 0) - (a.duracaoSeg ?? 0) : b.data.localeCompare(a.data)))[0];
 }

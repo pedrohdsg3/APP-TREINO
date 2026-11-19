@@ -38,7 +38,7 @@ export async function sessaoAnteriorDoTreino(treinoId: string, antesDe: string, 
 export async function salvarTreino(t: TreinoAtivo, extra: { esforco?: number; notas?: string }, agora: number) {
   const r = resumir(t, agora);
   const sessao: Sessao = {
-    id: t.sessaoId, data: t.data, tipo: 'musculacao', status: treinoConcluido(t) ? 'feito' : 'parcial',
+    id: t.sessaoId, data: t.data, tipo: 'musculacao', status: treinoConcluido(t) ? 'feito' : r.seriesTotal && r.seriesFeitas / r.seriesTotal >= 0.5 ? 'parcial' : 'incompleto',
     duracaoSeg: r.duracaoSeg, esforco: extra.esforco, notas: extra.notas?.trim() || undefined,
     semana: t.semana, treinoId: t.treinoId, volumeKg: r.volumeKg, prs: r.prs.length,
     dores: Object.fromEntries(t.exercicios.filter((e) => e.dores.length).map((e) => [e.item.exercicioId, e.dores])),

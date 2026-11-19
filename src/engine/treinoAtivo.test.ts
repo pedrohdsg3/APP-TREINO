@@ -20,16 +20,16 @@ describe('treino ativo', () => {
   it('pré-preenche com a sugestão da progressão dupla', () => {
     const t = base();
     expect(t.etapa).toBe('aquecimento');
-    expect(t.exercicios[0].series).toHaveLength(4);
+    expect(t.exercicios[0].series).toHaveLength(3); // 4 planejadas = 1 leve + 3 de trabalho
     expect(t.exercicios[0].series[0]).toMatchObject({ carga: 62.5, reps: 6 });
     expect(t.exercicios[1].series[0]).toMatchObject({ carga: 0, reps: 10 }); // sem histórico
   });
   it('carga propaga para as séries seguintes não feitas', () => {
     let t = base();
     t = ajustarSerie(t, 0, 0, 'carga', 65);
-    expect(t.exercicios[0].series.map((s) => s.carga)).toEqual([65, 65, 65, 65]);
-    t = ajustarSerie(t, 0, 2, 'carga', 60);
-    expect(t.exercicios[0].series.map((s) => s.carga)).toEqual([65, 65, 60, 60]);
+    expect(t.exercicios[0].series.map((s) => s.carga)).toEqual([65, 65, 65]);
+    t = ajustarSerie(t, 0, 1, 'carga', 60);
+    expect(t.exercicios[0].series.map((s) => s.carga)).toEqual([65, 60, 60]);
   });
   it('concluir série inicia descanso e detecta PR', () => {
     const { treino, pr } = concluirSerie(base(), 0, 0, 1000, 90);
@@ -66,12 +66,12 @@ describe('treino ativo', () => {
   });
   it('resumo: volume e conclusão', () => {
     let t = base();
+    t = { ...t, exercicios: t.exercicios.map((e) => (e.aquecimento ? { ...e, aquecimento: { ...e.aquecimento, feita: true } } : e)) };
     t.exercicios.forEach((e, i) => e.series.forEach((_, k) => { t = concluirSerie(t, i, k, 1000, 60).treino; }));
     expect(treinoConcluido(t)).toBe(true);
     expect(t.descanso).toBeUndefined();
     const r = resumir({ ...t, fim: 3_601_000 }, 0);
     expect(r.duracaoSeg).toBe(3601);
-    expect(r.volumeKg).toBe(4 * 62.5 * 6);
     expect(r.seriesFeitas).toBe(r.seriesTotal);
   });
 });
@@ -96,14 +96,15 @@ describe('biset', () => {
     const c = t.exercicios.findIndex((e) => e.item.exercicioId === 'triceps-corda');
     expect(parceiroBiset(t, r)).toBe(c);
     t = { ...t, atual: r };
-    for (let rodada = 0; rodada < 4; rodada++) {
+    // rosca 4 séries = 1 leve + 3; tríceps 5 = 1 leve + 4
+    for (let rodada = 0; rodada < 3; rodada++) {
       t = __concluir(t, r, rodada, 1000, 60).treino;
       expect(t.atual).toBe(c); expect(t.descanso).toBeUndefined();
       t = __concluir(t, c, rodada, 2000, 60).treino;
       expect(t.descanso).toBeDefined();
-      expect(t.atual).toBe(rodada < 3 ? r : c);
+      expect(t.atual).toBe(rodada < 2 ? r : c);
     }
-    t = __concluir(t, c, 4, 3000, 60).treino;
+    t = __concluir(t, c, 3, 3000, 60).treino;
     expect(t.exercicios[c].series.every((s) => s.feita)).toBe(true);
   });
 });

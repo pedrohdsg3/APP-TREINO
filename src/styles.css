@@ -1238,3 +1238,4 @@ strong, .num { font-variant-numeric: tabular-nums; }
 .opcao-plano__acoes { display: flex; gap: 14px; flex-wrap: wrap; }
 .opcao-plano__acoes .link { padding: 4px 0; }
 .plano-ref__itens .mini-btn { white-space: nowrap; flex: none; }
+.finalizar-agora { display: block; margin: 10px auto 0; color: var(--coral); font-weight: 700; }

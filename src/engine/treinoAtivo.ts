@@ -37,16 +37,18 @@ export interface Aquecimento {
   pulado?: boolean;
 }
 
-/** Série de aquecimento: 1º exercício ~40% × 15–20; demais ~50% × 12–15. Só para exercícios com carga e repetições. */
+/**
+ * Série leve: é a 1ª das séries do exercício (não uma a mais): carga moderada, ~15 repetições (até 20),
+ * para pegar o ritmo. Só para exercícios com carga e repetições e com 2+ séries. Conta no volume,
+ * não em recorde nem na progressão.
+ */
 export function montarAquecimento(item: ItemPlanejado, cargaTrabalho: number, primeiro: boolean): Aquecimento | undefined {
   const ex = EXERCICIOS[item.exercicioId];
-  if (!ex || ex.semCarga || ex.medida !== 'reps' || ex.regiao === 'core') return undefined;
-  const pct = primeiro ? 40 : 50;
+  if (!ex || ex.semCarga || ex.medida !== 'reps' || ex.regiao === 'core' || item.series < 2) return undefined;
+  const pct = primeiro ? 50 : 60;
   const passo = passoCarga(ex);
   const carga = cargaTrabalho > 0 ? Math.max(passo, Math.round((cargaTrabalho * pct) / 100 / passo) * passo) : 0;
-  return primeiro
-    ? { carga, reps: 15, repsMin: 15, repsMax: 20, pct, primeiro, feita: false }
-    : { carga, reps: 12, repsMin: 12, repsMax: 15, pct, primeiro, feita: false };
+  return { carga, reps: 15, repsMin: 15, repsMax: 20, pct, primeiro, feita: false };
 }
 
 /** O aquecimento deste exercício ainda está pendente? */
@@ -82,7 +84,10 @@ export const AQUECIMENTO = [
 function montarEx(item: ItemPlanejado, planejado: string, h: HistoricoEx | undefined, cargaInicial?: number, primeiro = false): ExAtivo {
   const ex = EXERCICIOS[item.exercicioId];
   const sug = sugerir(item, h?.ultima?.series, item.cargaPct);
-  const series: SerieAtiva[] = Array.from({ length: item.series }, (_, i) => {
+  // a série leve é a 1ª das N planejadas: sobram N−1 séries de trabalho
+  const comLeve = !ex.semCarga && ex.medida === 'reps' && ex.regiao !== 'core' && item.series >= 2;
+  const nTrabalho = comLeve ? item.series - 1 : item.series;
+  const series: SerieAtiva[] = Array.from({ length: nTrabalho }, (_, i) => {
     const ant = h?.ultima?.series[i] ?? h?.ultima?.series.at(-1);
     const inicial = cargaInicial ? Math.round(cargaInicial * (item.cargaPct ?? 100) / 100 * 2) / 2 : 0;
     const carga = ex.semCarga ? (ant?.carga ?? 0) : (sug?.carga ?? ant?.carga ?? inicial);
@@ -280,14 +285,21 @@ export interface Resumo {
 }
 export function resumir(t: TreinoAtivo, agora: number): Resumo {
   const feitas = t.exercicios.flatMap((e) => e.series.filter((s) => s.feita));
+  // a série leve (aquecimento) conta no volume e no total de séries
+  const leves = t.exercicios.filter((e) => e.aquecimento?.feita).map((e) => ({ carga: e.aquecimento!.carga, reps: e.aquecimento!.reps }));
   return {
     duracaoSeg: Math.round(((t.fim ?? agora) - t.inicio) / 1000),
-    volumeKg: volume(feitas),
-    seriesFeitas: feitas.length,
-    seriesTotal: t.exercicios.reduce((s, e) => s + e.series.length, 0),
+    volumeKg: volume([...feitas, ...leves]),
+    seriesFeitas: feitas.length + leves.length,
+    seriesTotal: t.exercicios.reduce((s, e) => s + e.series.length + (e.aquecimento ? 1 : 0), 0),
     prs: t.prs,
   };
 }
+
+/** Fração das séries planejadas que foram feitas (0–1). */
+export const fracaoFeita = (t: TreinoAtivo) => { const r = resumir(t, Date.now()); return r.seriesTotal ? r.seriesFeitas / r.seriesTotal : 0; };
+/** Mínimo para o treino contar (meta, sequência, Duelo). */
+export const MINIMO_PARA_CONTAR = 0.5;
 
 // ---------- persistência ----------
 const CHAVE_BASE = 'treino.ativo';
