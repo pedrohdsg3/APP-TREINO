@@ -202,6 +202,8 @@ function Exercicios({ t, atualizar, agora, aoSair, aoPR }: PropsEtapa & { agora:
     atualizar((x) => concluirAquecimento(x, x.atual, Date.now(), descansoDe(e.item.exercicioId, e.item.descanso)));
   }
 
+  // biset: o outro exercício do par (mostrado na mesma tela)
+  const parIdx = e.item.biset ? t.exercicios.findIndex((x, k) => k !== t.atual && x.item.biset === e.item.biset) : -1;
   const unidadeReps = ex.medida === 'segundos' ? 's' : 'reps';
   const ant = e.anterior;
   const fase = faseDaSemana(t.semana);
@@ -254,7 +256,15 @@ function Exercicios({ t, atualizar, agora, aoSair, aoPR }: PropsEtapa & { agora:
           ))}
         </div>
 
-        {etapa !== null && valores && orient ? (
+        {parIdx >= 0 ? (
+          <div className="biset-tela">
+            <p className="biset-tela__titulo">🔁 <strong>Biset</strong>: faça os dois e descanse só depois do par</p>
+            {[t.atual, parIdx].sort((a, b) => a - b).map((ei) => (
+              <PassoBiset key={ei} t={t} ei={ei} atual={ei === t.atual} atualizar={atualizar} aoPR={aoPR} descansoDe={descansoDe}
+                aoTrocar={() => { atualizar((x) => ({ ...x, atual: ei })); setTrocar(true); }} />
+            ))}
+          </div>
+        ) : etapa !== null && valores && orient ? (
           <div className={`serie-atual ${etapa === 'aquecimento' ? 'serie-atual--aq' : ''}`} key={`${t.atual}-${etapa}`}>
             <p className="serie-atual__titulo">
               {etapa === 'aquecimento' ? <>🔥 Série <strong>1</strong> de {e.series.length + 1} · leve</> : <>Série <strong>{etapa + 1 + (e.aquecimento ? 1 : 0)}</strong> de {e.series.length + (e.aquecimento ? 1 : 0)}</>}
@@ -281,7 +291,7 @@ function Exercicios({ t, atualizar, agora, aoSair, aoPR }: PropsEtapa & { agora:
           <p className="tudo-feito">Todas as séries deste exercício feitas ✅</p>
         )}
 
-        {(e.aquecimento?.feita || seriesFeitas(e) > 0) && (
+        {parIdx < 0 && (e.aquecimento?.feita || seriesFeitas(e) > 0) && (
           <div className="feitas" aria-label="Séries feitas (toque para corrigir)">
             <span className="feitas__rotulo">Feitas</span>
             {e.aquecimento?.feita && (
@@ -377,6 +387,68 @@ function Exercicios({ t, atualizar, agora, aoSair, aoPR }: PropsEtapa & { agora:
 }
 
 function fmtNum(n: number) { return n.toLocaleString('pt-BR', { maximumFractionDigits: 2 }); }
+
+// ------------------------------------------------------------------ biset (dois exercícios na mesma tela)
+function PassoBiset({ t, ei, atual, atualizar, aoPR, descansoDe, aoTrocar }: {
+  t: TreinoAtivo; ei: number; atual: boolean; atualizar: (f: (x: TreinoAtivo) => TreinoAtivo) => void; aoPR: (txt: string) => void;
+  descansoDe: (exId: string, padrao: number) => number; aoTrocar: () => void;
+}) {
+  const e = t.exercicios[ei];
+  const ex = EXERCICIOS[e.item.exercicioId];
+  const par = t.exercicios.findIndex((x, k) => k !== ei && x.item.biset === e.item.biset);
+  const aq = aquecimentoPendente(e);
+  const si = e.series.findIndex((s) => !s.feita);
+  const etapa: 'aquecimento' | number | null = aq ? 'aquecimento' : si === -1 ? null : si;
+  const total = e.series.length + (e.aquecimento ? 1 : 0);
+  const v = etapa === 'aquecimento' ? e.aquecimento! : etapa === null ? null : e.series[etapa];
+  const ajustar = (campo: 'carga' | 'reps', valor: number) =>
+    atualizar((x) => (etapa === 'aquecimento' ? ajustarAquecimento(x, ei, campo, valor) : ajustarSerie(x, ei, etapa as number, campo, valor)));
+  // rodadas feitas (série leve conta como rodada); quem está à frente espera o par
+  const rodadas = (x: typeof e) => seriesFeitas(x) + (x.aquecimento && !aquecimentoPendente(x) ? 1 : 0);
+  const outro = par >= 0 ? t.exercicios[par] : undefined;
+  const esperando = !!outro && !exConcluido(outro) && rodadas(e) > rodadas(outro);
+
+  function concluir() {
+    if (etapa === null) return;
+    if (etapa === 'aquecimento') {
+      atualizar((x) => {
+        let n = concluirAquecimento(x, ei, Date.now(), descansoDe(e.item.exercicioId, e.item.descanso));
+        // a série leve do par ainda não foi feita: vai direto para ela, sem descanso
+        if (par >= 0 && aquecimentoPendente(n.exercicios[par])) n = { ...n, atual: par, descanso: undefined };
+        return n;
+      });
+      return;
+    }
+    const r = concluirSerie(t, ei, etapa, Date.now(), descansoDe(e.item.exercicioId, e.item.descanso));
+    let n = r.treino;
+    if (exConcluido(n.exercicios[n.atual])) { const prox = proximoPendente(n); if (prox !== undefined) n = { ...n, atual: prox }; }
+    if (treinoConcluido(n)) { avisar('sucesso'); n = { ...n, etapa: 'resumo', fim: Date.now() }; }
+    atualizar(() => n);
+    if (r.pr) aoPR(`PR! ${ex.nome}: ${fmtKg(r.pr.carga)} × ${r.pr.reps}`);
+  }
+
+  return (
+    <div className={`biset-ex ${atual ? 'biset-ex--atual' : ''} ${etapa === null ? 'biset-ex--feito' : ''}`}>
+      <div className="biset-ex__cab">
+        <strong>{ex.nome}</strong>
+        <span>{etapa === null ? 'concluído ✅' : etapa === 'aquecimento' ? `🔥 Série 1 de ${total} · leve` : `Série ${etapa + 1 + (e.aquecimento ? 1 : 0)} de ${total}`}</span>
+      </div>
+      {e.anterior && <small className="biset-ex__ant">Última vez: {e.anterior.map((s) => (ex.semCarga ? `${s.reps}` : `${fmtNum(s.carga)}×${s.reps}`)).join(' · ')}</small>}
+      {v && etapa !== null && (
+        <>
+          <div className="serie__campos serie__campos--biset">
+            {!ex.semCarga && <Stepper compacto rotulo="Carga" sufixo="kg" passo={passoCarga(ex)} valor={v.carga} onChange={(x) => ajustar('carga', x)} />}
+            <Stepper compacto rotulo={ex.medida === 'segundos' ? 'Tempo' : 'Reps'} sufixo={ex.medida === 'segundos' ? 's' : 'reps'} passo={ex.medida === 'segundos' ? 5 : 1} valor={v.reps} onChange={(x) => ajustar('reps', x)} />
+          </div>
+          {esperando
+            ? <p className="biset-ex__espera">✓ Feito nesta rodada. Agora o {EXERCICIOS[outro!.item.exercicioId].nome.toLowerCase()}.</p>
+            : <button className="btn-concluir btn-concluir--biset" onClick={concluir}><Check /> Concluir {etapa === 'aquecimento' ? 'série leve' : 'série'}</button>}
+        </>
+      )}
+      <button className="link link--sutil" onClick={aoTrocar}>🔄 Trocar exercício</button>
+    </div>
+  );
+}
 
 // ------------------------------------------------------------------ descanso
 function Descanso({ t, agora, atualizar }: { t: TreinoAtivo; agora: number; atualizar: PropsEtapa['atualizar'] }) {
